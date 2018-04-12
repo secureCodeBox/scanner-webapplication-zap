@@ -1,0 +1,148 @@
+buildscript {
+    ext {
+        springBootVersion = '1.4.0.RELEASE'
+        artifactoryPluginVersion = '4.4.0'
+        sonarQubePluginVersion = '2.6.2'
+		gradleLombokVersion = "1.11"
+        dependencyCheckVersion = '1.4.2'
+    }
+    repositories {
+        mavenCentral()
+        jcenter()
+       	maven {
+	      url "https://plugins.gradle.org/m2/"
+	    }
+    }
+    dependencies {
+        classpath "org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}"
+		classpath "io.franzbecker:gradle-lombok:${gradleLombokVersion}"
+        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:${artifactoryPluginVersion}"
+        classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:${sonarQubePluginVersion}"
+        classpath "org.owasp:dependency-check-gradle:${dependencyCheckVersion}"
+		classpath 'org.unbroken-dome.gradle-plugins:gradle-testsets-plugin:1.2.0'
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'maven-publish'
+apply plugin: "io.franzbecker.gradle-lombok"
+apply plugin: 'spring-boot'
+apply plugin: 'io.spring.dependency-management'
+apply plugin: "com.jfrog.artifactory"
+apply plugin: "org.sonarqube"
+apply plugin: 'org.owasp.dependencycheck'
+apply plugin: 'org.unbroken-dome.test-sets'
+
+repositories {
+	mavenCentral()
+	jcenter()
+}
+
+/*
+ * Defining a seperated test set for integration tests.
+ * Thanks to: https://github.com/unbroken-dome/gradle-testsets-plugin
+ */
+testSets {
+	integrationTest
+}
+
+dependencies {
+	compile ("de.otto.edison:edison-service:0.62.0")
+	compile ("de.otto.edison:edison-jobs:0.62.0")
+	compile ("de.otto.edison:edison-togglz:0.62.0")
+	
+	compile ("commons-cli:commons-cli:1.3")
+	compile ("io.springfox:springfox-swagger2:2.4.0")
+	compile ('io.springfox:springfox-swagger-ui:2.4.0')
+	
+	compile ("org.springframework.boot:spring-boot-actuator-docs:1.5.12.RELEASE")
+	compile ("org.springframework.boot:spring-boot-devtools:1.3.0.RELEASE")
+	compile "org.springframework.boot:spring-boot-configuration-processor"
+	compile('org.zaproxy:zap:2.7.0')
+	compile('org.zaproxy:zap-clientapi:1.5.0')
+	compile group: 'commons-codec', name: 'commons-codec', version: '1.11'
+
+	
+	compile ('com.googlecode.json-simple:json-simple:1.1.1')
+	
+    testCompile('org.springframework.boot:spring-boot-starter-test')
+	
+	integrationTestCompile('org.springframework.boot:spring-boot-starter-test')
+	integrationTestCompile('org.apache.httpcomponents:httpclient:4.5.2')
+	integrationTestCompile('org.apache.httpcomponents:fluent-hc:4.5.2')
+}
+
+compileJava.dependsOn(processResources)
+
+jar {
+	baseName = artifactName
+    manifest.attributes provider: 'gradle'
+}
+
+eclipse {
+	classpath {
+		 containers.remove('org.eclipse.jdt.launching.JRE_CONTAINER')
+		 containers 'org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8'
+	}
+}
+
+artifactory {
+	contextUrl = 'https://artifactory.iteratec.de/artifactory'
+	publish {
+		repository {
+			repoKey = 'securebox-local'
+			username = artifactory_user
+			password = artifactory_password
+			maven = true
+		}
+		defaults {
+            publications ('mavenJava')
+        }
+	}	
+}
+
+publishing {
+	publications {
+		mavenJava(MavenPublication) {
+			from components.java
+			artifactId artifactName
+		}
+	}
+}
+
+dependencyCheck {
+    if (System.getenv('bamboo_cvss_limit')!= null) {
+        failBuildOnCVSS = (System.getenv('bamboo_cvss_limit')).toInteger()
+    }
+}
+
+/*
+ *  Passing the active profile informations in the case of a simple "gradle bootRun".
+ *  Thanks to: https://github.com/spring-projects/spring-boot/pull/592https://github.com/spring-projects/spring-boot/pull/592
+ */
+bootRun {
+    systemProperties['spring.profiles.active']=project.gradle.startParameter.systemPropertiesArgs['spring.profiles.active'];
+    systemProperties['spring.application.json']=project.gradle.startParameter.systemPropertiesArgs['spring.application.json'];
+}
+
+/*
+ *  File filtering and toke replacement. Variables are defined in the gradle.properties file.
+ *  Variables can be overriden via gradle parameter, e.g. "-Pvcs_commit=${bamboo.repository.revision.number}".
+ *  Thanks to: https://docs.gradle.org/current/userguide/build_environment.html
+ */
+import org.apache.tools.ant.filters.*
+processResources {
+    filter ReplaceTokens, tokens: [
+        "application.version": project.property("version"),
+        "application.vcs.commit": vcs_commit,
+        "application.vcs.version": project.property("version"),
+        "application.vcs.url": vcs_url,
+        "application.build.url": build_url,
+        "application.build.timestamp": build_timestamp
+    ]
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.3'
+}
