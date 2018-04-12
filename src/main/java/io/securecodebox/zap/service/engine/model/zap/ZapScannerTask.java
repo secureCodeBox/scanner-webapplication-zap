@@ -7,17 +7,6 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class ZapScannerTask extends ExternalTask {
-
-    private String id;
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
     private ZapScannerFetchVariables variables;
 
     public boolean getAuthentication() {

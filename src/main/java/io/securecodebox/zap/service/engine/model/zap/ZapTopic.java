@@ -6,11 +6,24 @@ import lombok.Getter;
 /**
  * Represents all ZAP specific topic names used to identify the external tasks for this service.
  */
-@AllArgsConstructor
+//@AllArgsConstructor
 public enum ZapTopic {
     ZAP_SPIDER("zap_spider"),
     ZAP_SCANNER("zap_scan");
 
-    @Getter
+    ZapTopic(String name) {
+        this.name = name;
+    }
+
+//    @Getter
     private String name;
+
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public String toString() {
+        return getName();
+    }
 }

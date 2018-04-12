@@ -4,11 +4,17 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
-@AllArgsConstructor
+//@AllArgsConstructor
 public class ProcessVariable {
     private String type;
     private String value;
     private Object valueInfo;
+
+    public ProcessVariable(String type, String value, Object valueInfo) {
+        this.type = type;
+        this.value = value;
+        this.valueInfo = valueInfo;
+    }
 
     public ProcessVariable() {
     }
