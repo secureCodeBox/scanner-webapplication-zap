@@ -170,24 +170,32 @@ public class ZapBaseApi {
     }
 
 
+    /**
+     * The Enum ZapBaseApiUrl.
+     */
     private enum ZapBaseApiUrl implements ZapApiCall {
 
-        GET_HAR_MESSAGE{
-            @Override
-            public String toString() {
-                return "core/other/messageHar/";
-            }
-        };
+        /** The view scan list URL. */
+        GET_HAR_MESSAGE("core/other/messageHar/");
 
-        private final String url = null;
+        /** The URL. */
+        private final String url;
 
-        public String getUrl(){
-            return url;
+        /**
+         * Instantiates a new spider api URL.
+         *
+         * @param url the url
+         */
+        ZapBaseApiUrl(final String url) {
+            this.url = url;
         }
 
+        /* (non-Javadoc)
+         * @see de.iteratec.securebox.zap.service.zap.api.ZapApiCall#getUrl()
+         */
         @Override
-        public String toString() {
-            return name();
+        public String getUrl() {
+            return this.url;
         }
     }
 }

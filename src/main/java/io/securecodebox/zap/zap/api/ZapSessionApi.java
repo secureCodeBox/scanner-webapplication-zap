@@ -386,18 +386,16 @@ public class ZapSessionApi extends ZapBaseApi {
         LOAD_SCRIPT("script/action/load/"),
         LIST_SCRIPTS("script/view/listScripts/");
 
-        private final String url = null;
-
-        private String s;
+        private final String url;
 
 
         SessionApiUrl(String s) {
-            this.s = s;
+            this.url = s;
         }
 
         @Override
         public String getUrl() {
-            return s;
+            return url;
         }
 
         @Override

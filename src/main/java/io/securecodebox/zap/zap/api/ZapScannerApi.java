@@ -108,79 +108,69 @@ public class ZapScannerApi extends ZapBaseApi {
     }
 
     private enum ScannerApi implements ZapApiCall {
-        VIEW_SCAN_LIST{
-            @Override
-            public String getUrl() {
-                return "ascan/view/scans/";
-            }
-        },
-        VIEW_SCAN_STATUS{
-            @Override
-            public String getUrl() {
-                return "ascan/view/status/";
-            }
-        },
-        VIEW_SCAN_ALERTS{
-            @Override
-            public String getUrl() {
-                return "core/view/alerts";
-            }
-        },
-        OPTION_ENABLE_ALL_SCANNER{
-            @Override
-            public String getUrl() {
-                return "ascan/action/enableAllScanners/";
-            }
-        },
-        OPTION_HANDLE_ANTI_CFRS{
-            @Override
-            public String getUrl() {
-                return "ascan/action/setOptionHandleAntiCSRFTokens/";
-            }
-        },
-        START_SCANNER{
-            @Override
-            public String getUrl() {
-                return "ascan/action/scan/";
-            }
-        },
-        START_SCANNER_AS_USER{
-            @Override
-            public String getUrl() {
-                return "ascan/action/scanAsUser/";
-            }
-        },
-        STOP_SCANNER{
-            @Override
-            public String getUrl() {
-                return "ascan/action/stop/";
-            }
-        },
-        STOP_ALL_SCANNER{
-            @Override
-            public String getUrl() {
-                return "ascan/action/stopAllScans/";
-            }
-        },
-        REMOVE_SCANNER{
-            @Override
-            public String getUrl() {
-                return "ascan/action/removeScan/";
-            }
-        },
-        REMOVE_ALL_SCANNER{
-            @Override
-            public String getUrl() {
-                return "ascan/action/removeAllScans/";
-            }
-        };
+        /** The view scan list URL. */
+        VIEW_SCAN_LIST("ascan/view/scans/"),
 
+        /** The view scan status URL. */
+        VIEW_SCAN_STATUS("ascan/view/status/"),
 
-        private final String url = null;
+        /** The view scan alerts. */
+        VIEW_SCAN_ALERTS("core/view/alerts"),
 
+        /** The option enable all scanner URL. */
+        OPTION_ENABLE_ALL_SCANNER("ascan/action/enableAllScanners/"),
+
+        /** The option handle anti CFRS URL. */
+        OPTION_HANDLE_ANTI_CFRS("ascan/action/setOptionHandleAntiCSRFTokens/"),
+
+        /** The option policy alert threshold URL. */
+        OPTION_POLICY_ALERT_THRESHOLD("ascan/action/setPolicyAlertThreshold/"),
+
+        /** The option policy attack strength URL. */
+        OPTION_POLICY_ATTACK_STRENGTH("ascan/action/setPolicyAttackStrength/"),
+
+        /** The option scanner alert threshold URL. */
+        OPTION_SCANNER_ALERT_THRESHOLD("ascan/action/setScannerAlertThreshold/"),
+
+        /** The option scanner attack threshold URL. */
+        OPTION_SCANNER_ATTACK_THRESHOLD("ascan/action/setScannerAttackStrength/"),
+
+        /** The start scanner URL. */
+        START_SCANNER("ascan/action/scan/"),
+
+        /** The start scanner as user URL. */
+        START_SCANNER_AS_USER("ascan/action/scanAsUser/"),
+
+        /** The stop scanner URL. */
+        STOP_SCANNER("ascan/action/stop/"),
+
+        /** The stop all scanner URL. */
+        STOP_ALL_SCANNER("ascan/action/stopAllScans/"),
+
+        /** The remove scanner URL. */
+        REMOVE_SCANNER("ascan/action/removeScan/"),
+
+        /** The remove all scanner URL. */
+        REMOVE_ALL_SCANNER("ascan/action/removeAllScans/");
+
+        /** The URL. */
+        private final String url;
+
+        /**
+         * Instantiates a new spider api URL.
+         *
+         * @param url the url
+         */
+        ScannerApi(final String url) {
+            this.url = url;
+        }
+
+        /* (non-Javadoc)
+         * @see de.iteratec.securebox.zap.service.zap.api.ZapApiCall#getUrl()
+         */
         @Override
         public String getUrl() {
-            return url;
+            return this.url;
         }
 
         @Override

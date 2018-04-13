@@ -105,4 +105,21 @@ public class SpiderResultUrl {
     public void setCookies(String cookies) {
         this.cookies = cookies;
     }
+
+    @Override
+    public String toString() {
+        return "SpiderResultUrl{" +
+                "statusCode='" + statusCode + '\'' +
+                ", statusReason='" + statusReason + '\'' +
+                ", method='" + method + '\'' +
+                ", messageId='" + messageId + '\'' +
+                ", url='" + url + '\'' +
+                ", requestDateTime='" + requestDateTime + '\'' +
+                ", responseTime=" + responseTime +
+                ", postData='" + postData + '\'' +
+                ", headers='" + headers + '\'' +
+                ", queryString='" + queryString + '\'' +
+                ", cookies='" + cookies + '\'' +
+                '}';
+    }
 }

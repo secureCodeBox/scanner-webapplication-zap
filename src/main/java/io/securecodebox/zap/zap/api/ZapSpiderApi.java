@@ -94,13 +94,17 @@ public class ZapSpiderApi extends ZapBaseApi {
             HttpStatus statusCode = HttpStatus.valueOf(Integer.parseInt(url.getStatusCode()));
 
             if (statusCode.is2xxSuccessful() || statusCode.is3xxRedirection() || statusCode.is1xxInformational()) {
+
+                LOG.info("filterAndExtendSpiderResults: urls: " + urls);
                 String message = getMessageHAR(url.getMessageId());
+
+                LOG.info("message: " + message);
 
                 if (message != null && !message.isEmpty()) {
                     try {
                         Object obj = parser.parse(message);
                         JSONObject jsonObject = (JSONObject) obj;
-                        JSONArray entries = (JSONArray) ((JSONObject) jsonObject.get("LOG")).get("entries");
+                        JSONArray entries = (JSONArray) ((JSONObject) jsonObject.get("log")).get("entries");
 
                         if (entries.size() == 1) {
                             JSONObject entry = (JSONObject) entries.get(0);
