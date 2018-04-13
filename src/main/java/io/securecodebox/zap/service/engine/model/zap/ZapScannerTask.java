@@ -1,13 +1,15 @@
 package io.securecodebox.zap.service.engine.model.zap;
 
 import io.securecodebox.zap.service.engine.model.ExternalTask;
+import io.securecodebox.zap.service.engine.model.Variables;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class ZapScannerTask extends ExternalTask {
-    private ZapScannerFetchVariables variables;
+
+    private Variables variables;
 
     public boolean getAuthentication() {
         return (variables.getAuthentication() != null && variables.getAuthentication().getValue() != null && !variables.getAuthentication().getValue().isEmpty()) && Boolean.parseBoolean(variables.getAuthentication().getValue());

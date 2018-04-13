@@ -40,7 +40,7 @@ public class ZapTaskService extends TaskService {
      * Fetch and lock scanner tasks with the given maximum count.
      */
     public ZapScannerTask[] fetchAndLockScannerTasks(int maxTasks, ZapTopic zapTopic) {
-        FetchTasks fetchTask = createZapFetchTasks(maxTasks, zapTopic, ZapScannerFetchVariables.TASK_VARIABLES);
+        FetchTasks fetchTask = createZapFetchTasks(maxTasks, zapTopic, Variables.getVariablesAsStringArray());
         return taskApiClient.fetchAndLockTasks(fetchTask, ZapScannerTask[].class);
     }
 
@@ -48,7 +48,7 @@ public class ZapTaskService extends TaskService {
      * Fetch and lock spider tasks with the given maximum count.
      */
     public ZapSpiderTask[] fetchAndLockSpiderTasks(int maxTasks, ZapTopic zapTopic) {
-        FetchTasks fetchTask = createZapFetchTasks(maxTasks, zapTopic, ZapSpiderFetchVariables.TASK_VARIABLES);
+        FetchTasks fetchTask = createZapFetchTasks(maxTasks, zapTopic, Variables.getVariablesAsStringArray());
         return taskApiClient.fetchAndLockTasks(fetchTask, ZapSpiderTask[].class);
     }
 
@@ -78,10 +78,10 @@ public class ZapTaskService extends TaskService {
     }
 
     private CompleteTask createZapSpiderCompleteTask(ZapSpiderTask zapTask, String zapResult) {
-        ZapSpiderCompleteVariables vars = new ZapSpiderCompleteVariables();
+        Variables vars = new Variables();
         vars.setSpiderResult(new ProcessVariable("json", zapResult, null));
         vars.setSpiderMicroserviceId(new ProcessVariable("String", config.getAppId(), null));
-//        vars.setLastServiceMessage(new ProcessVariable("String", "ZAP spider task finished :-)", null));
+        vars.setLastServiceMessage(new ProcessVariable("String", "ZAP spider task finished :-)", null));
 
         CompleteTask result = new CompleteTask();
         result.setWorkerId(config.getAppId());
@@ -90,10 +90,10 @@ public class ZapTaskService extends TaskService {
     }
 
     private CompleteTask createZapScannerCompleteTask(ZapScannerTask zapTask, String zapResult) {
-        ZapScannerCompleteVariables vars = new ZapScannerCompleteVariables();
+        Variables vars = new Variables();
         vars.setScannerResult(new ProcessVariable("json", zapResult, null));
         vars.setScannerMicroserviceId(new ProcessVariable("String", config.getAppId(), null));
-//        vars.setLastServiceMessage(new ProcessVariable("String", "ZAP scanner task finished :-)", null));
+        vars.setLastServiceMessage(new ProcessVariable("String", "ZAP scanner task finished :-)", null));
 
         CompleteTask result = new CompleteTask();
         result.setWorkerId(config.getAppId());

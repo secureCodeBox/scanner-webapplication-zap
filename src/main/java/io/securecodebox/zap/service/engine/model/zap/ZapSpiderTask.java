@@ -3,6 +3,7 @@ package io.securecodebox.zap.service.engine.model.zap;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.securecodebox.zap.service.engine.model.ExternalTask;
+import io.securecodebox.zap.service.engine.model.Variables;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -11,14 +12,14 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public class ZapSpiderTask extends ExternalTask {
 
-    public void setVariables(ZapSpiderFetchVariables variables) {
+    public void setVariables(Variables variables) {
         this.variables = variables;
     }
 
     @JsonProperty("variables")
-    private ZapSpiderFetchVariables variables;
+    private Variables variables;
 
-    public ZapSpiderFetchVariables getVariables() {
+    public Variables getVariables() {
         return variables;
     }
 

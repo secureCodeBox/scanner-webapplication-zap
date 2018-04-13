@@ -12,13 +12,13 @@ import lombok.Data;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class CompleteTask {
     private String workerId;
-    private CompleteVariables variables;
+    private Variables variables;
 
     public String getWorkerId() {
         return workerId;
     }
 
-    public CompleteVariables getVariables() {
+    public Variables getVariables() {
         return variables;
     }
 
@@ -26,7 +26,7 @@ public class CompleteTask {
         this.workerId = workerId;
     }
 
-    public void setVariables(CompleteVariables variables) {
+    public void setVariables(Variables variables) {
         this.variables = variables;
     }
 }
