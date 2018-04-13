@@ -1,14 +1,9 @@
-# OWASP Zap Proxy Scanner
-# Service Url: http://localhost/zap?parameters=localhost
-# --------------------------------
-# DOCKER-VERSION 1.8.0
-# To build:
-# 1. Install docker (http://docker.io)
-# 2. Build container: 	docker build -t securebox/zap .
-# 3. Run container: 	docker run -it --rm --name zap -p 8080:8080 securebox/zap
+FROM gradle:alpine as builder
+USER root
+COPY . .
+RUN gradle build
 
 FROM owasp/zap2docker-stable
-MAINTAINER Robert.Seedorff@iteratec.de
 
 USER root
 
@@ -17,7 +12,7 @@ RUN pip install supervisor-stdout
 
 COPY dockerfiles/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY dockerfiles/csrfAuthScript.js /zap/scripts/templates/authentication/csrfAuthScript.js
-COPY ./build/libs/secureBoxZap-rest-service-0.4.0-SNAPSHOT.jar /app.jar
+COPY --from=builder /home/gradle/build/libs/secureBoxZap-rest-service-0.4.0-SNAPSHOT.jar /app.jar
 
 VOLUME /tmp
 VOLUME /var/log/supervisor
