@@ -146,7 +146,6 @@ public class EngineTaskApiClient {
         LOG.info(String.format("Trying to fetch %s open worker tasks for the topics: %s via %s", fetchTask.getMaxTasks(), fetchTask.getTopics(), engineFetchTasksUrl));
 
         ResponseEntity<T> responseFetchedTasks = restTemplate.postForEntity(engineFetchTasksUrl, fetchTask, resultTaskType);
-        ResponseEntity<String> string = restTemplate.postForEntity(engineFetchTasksUrl, fetchTask, String.class);
 
         T fetchedTasks = responseFetchedTasks.getBody();
         MediaType contentType = responseFetchedTasks.getHeaders().getContentType();

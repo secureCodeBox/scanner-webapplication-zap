@@ -13,6 +13,7 @@ public class Variables {
 
     private ProcessVariable lastServiceMessage;
     private ProcessVariable processUuid;
+    @JsonProperty("ZAP_AUTHENTICATION")
     private ProcessVariable authentication;
     private ProcessVariable loggedInIndicator;
     private ProcessVariable loggedOutIndicator;
@@ -20,6 +21,7 @@ public class Variables {
     private ProcessVariable loginSite;
     private ProcessVariable loginUser;
     private ProcessVariable passwordFieldId;
+    @JsonProperty("ZAP_TARGET_URL")
     private ProcessVariable targetUrl;
     private ProcessVariable usernameFieldId;
     private ProcessVariable csrfTokenId;
