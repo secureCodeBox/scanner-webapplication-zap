@@ -48,35 +48,21 @@ testSets {
 }
 
 dependencies {
-	compile ("de.otto.edison:edison-service:0.62.0")
-	compile ("de.otto.edison:edison-jobs:0.62.0")
-	compile ("de.otto.edison:edison-togglz:0.62.0")
-	
-	compile ("commons-cli:commons-cli:1.3")
-	compile ("io.springfox:springfox-swagger2:2.4.0")
-	compile ('io.springfox:springfox-swagger-ui:2.4.0')
-	
-	compile ("org.springframework.boot:spring-boot-actuator-docs:1.5.12.RELEASE")
-	compile ("org.springframework.boot:spring-boot-devtools:1.3.0.RELEASE")
-	compile "org.springframework.boot:spring-boot-configuration-processor"
-	compile('org.zaproxy:zap:2.7.0')
-	compile('org.zaproxy:zap-clientapi:1.5.0')
-	compile group: 'commons-codec', name: 'commons-codec', version: '1.11'
-
-	
-	compile ('com.googlecode.json-simple:json-simple:1.1.1')
-	
-    testCompile('org.springframework.boot:spring-boot-starter-test')
-	
-	integrationTestCompile('org.springframework.boot:spring-boot-starter-test')
-	integrationTestCompile('org.apache.httpcomponents:httpclient:4.5.2')
-	integrationTestCompile('org.apache.httpcomponents:fluent-hc:4.5.2')
+    compile('com.googlecode.json-simple:json-simple:1.1.1')
+    compile("commons-cli:commons-cli:1.3")
+    compile("de.otto.edison:edison-jobs:0.62.0")
+    compile("de.otto.edison:edison-service:0.62.0")
+    compile("de.otto.edison:edison-togglz:0.62.0")
+    compile('org.springframework.boot:spring-boot-actuator-docs')
+    compile('org.springframework.boot:spring-boot-devtools')
+    compile('org.zaproxy:zap:2.7.0')
+    compile('org.zaproxy:zap-clientapi:1.6.0')
 }
 
 compileJava.dependsOn(processResources)
 
 jar {
-	baseName = artifactName
+    baseName = artifactName
     manifest.attributes provider: 'gradle'
 }
 
@@ -112,26 +98,22 @@ publishing {
 }
 
 dependencyCheck {
-    if (System.getenv('bamboo_cvss_limit')!= null) {
+    if (System.getenv('bamboo_cvss_limit') != null) {
         failBuildOnCVSS = (System.getenv('bamboo_cvss_limit')).toInteger()
     }
 }
 
-/*
- *  Passing the active profile informations in the case of a simple "gradle bootRun".
- *  Thanks to: https://github.com/spring-projects/spring-boot/pull/592https://github.com/spring-projects/spring-boot/pull/592
- */
+// Passing the active profile information in the case of a simple "gradle bootRun".
+// Thanks to: https://github.com/spring-projects/spring-boot/pull/592https://github.com/spring-projects/spring-boot/pull/592
 bootRun {
     systemProperties['spring.profiles.active']=project.gradle.startParameter.systemPropertiesArgs['spring.profiles.active'];
     systemProperties['spring.application.json']=project.gradle.startParameter.systemPropertiesArgs['spring.application.json'];
 }
 
-/*
- *  File filtering and toke replacement. Variables are defined in the gradle.properties file.
- *  Variables can be overriden via gradle parameter, e.g. "-Pvcs_commit=${bamboo.repository.revision.number}".
- *  Thanks to: https://docs.gradle.org/current/userguide/build_environment.html
- */
-import org.apache.tools.ant.filters.*
+// File filtering and token replacement. Variables are defined in "gradle.properties" file and can be overridden e.g. via "-Pvcs_commit=${bamboo.repository.revision.number}".
+// Thanks to: https://docs.gradle.org/current/userguide/build_environment.html
+import org.apache.tools.ant.filters.ReplaceTokens
+
 processResources {
     filter ReplaceTokens, tokens: [
         "application.version": project.property("version"),

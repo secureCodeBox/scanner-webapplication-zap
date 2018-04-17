@@ -1,69 +1,75 @@
 package io.securecodebox.zap.service.engine.model.zap;
 
 import io.securecodebox.zap.service.engine.model.ExternalTask;
+import io.securecodebox.zap.service.engine.model.ProcessVariable;
 import io.securecodebox.zap.service.engine.model.Variables;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 @Data
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(callSuper = true)
 public class ZapScannerTask extends ExternalTask {
 
     private Variables variables;
 
     public boolean getAuthentication() {
-        return (variables.getAuthentication() != null && variables.getAuthentication().getValue() != null && !variables.getAuthentication().getValue().isEmpty()) && Boolean.parseBoolean(variables.getAuthentication().getValue());
+        return Boolean.parseBoolean(getValue(variables.getAuthentication()));
     }
 
     public String getLoggedInIndicator() {
-        return (variables.getLoggedInIndicator() != null && variables.getLoggedInIndicator().getValue() != null) ? variables.getLoggedInIndicator().getValue() : "";
+        return getValue(variables.getLoggedInIndicator());
     }
 
     public String getLoggedOutIndicator() {
-        return (variables.getLoggedOutIndicator() != null && variables.getLoggedOutIndicator().getValue() != null) ? variables.getLoggedOutIndicator().getValue() : "";
+        return getValue(variables.getLoggedOutIndicator());
     }
 
     public String getLoginPassword() {
-        return (variables.getLoginPassword() != null && variables.getLoginPassword().getValue() != null) ? variables.getLoginPassword().getValue() : "";
+        return getValue(variables.getLoginPassword());
     }
 
     public String getLoginSite() {
-        return (variables.getLoginSite() != null && variables.getLoginSite().getValue() != null) ? variables.getLoginSite().getValue() : "";
+        return getValue(variables.getLoginSite());
     }
 
     public String getLoginUser() {
-        return (variables.getLoginUser() != null && variables.getLoginUser().getValue() != null) ? variables.getLoginUser().getValue() : "";
+        return getValue(variables.getLoginUser());
     }
 
     public String getPasswordFieldId() {
-        return (variables.getPasswordFieldId() != null && variables.getPasswordFieldId().getValue() != null) ? variables.getPasswordFieldId().getValue() : "";
+        return getValue(variables.getPasswordFieldId());
     }
 
     public String getScannerExcludeRegexes() {
-        return (variables.getScannerExcludeRegexes() != null && variables.getScannerExcludeRegexes().getValue() != null) ? variables.getScannerExcludeRegexes().getValue() : "";
+        return getValue(variables.getScannerExcludeRegexes());
     }
 
     public String getScannerIncludeRegexes() {
-        return (variables.getScannerIncludeRegexes() != null && variables.getScannerIncludeRegexes().getValue() != null) ? variables.getScannerIncludeRegexes().getValue() : "";
+        return getValue(variables.getScannerIncludeRegexes());
     }
 
     public String getScannerTargetUrl() {
-        return (variables.getScannerTargetUrl() != null && variables.getScannerTargetUrl().getValue() != null) ? variables.getScannerTargetUrl().getValue() : "";
+        return getValue(variables.getScannerTargetUrl());
     }
 
     public String getSpiderResult() {
-        return (variables.getSpiderResult() != null && variables.getSpiderResult().getValue() != null) ? variables.getSpiderResult().getValue() : "";
+        return getValue(variables.getSpiderResult());
     }
 
     public String getTargetUrl() {
-        return (variables.getTargetUrl() != null && variables.getTargetUrl().getValue() != null) ? variables.getTargetUrl().getValue() : "";
+        return getValue(variables.getTargetUrl());
     }
 
     public String getUsernameFieldId() {
-        return (variables.getUsernameFieldId() != null && variables.getUsernameFieldId().getValue() != null) ? variables.getUsernameFieldId().getValue() : "";
+        return getValue(variables.getUsernameFieldId());
     }
 
     public String getCsrfTokenId() {
-        return (variables.getCsrfTokenId() != null && variables.getCsrfTokenId().getValue() != null) ? variables.getCsrfTokenId().getValue() : "";
+        return getValue(variables.getCsrfTokenId());
+    }
+
+
+    private static String getValue(ProcessVariable var) {
+        return (var != null && var.getValue() != null) ? var.getValue() : "";
     }
 }

@@ -1,4 +1,4 @@
-package io.securecodebox.zap.service.zap2;
+package io.securecodebox.zap.service.zap;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -12,7 +12,7 @@ import de.otto.edison.status.domain.Status;
 import de.otto.edison.status.domain.StatusDetail;
 import de.otto.edison.status.indicator.StatusDetailIndicator;
 import io.securecodebox.zap.configuration.ZapConfiguration;
-import io.securecodebox.zap.service.zap2.model.SpiderResult;
+import io.securecodebox.zap.service.zap.model.SpiderResult;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONArray;
@@ -84,15 +84,17 @@ public class ZapService implements StatusDetailIndicator {
             contextExcludeRegex = null;
         }
 
-        api.core.newSession(SESSION_NAME, null);
+        api.core.newSession(SESSION_NAME, "true");
 
         Context context = new Context(api);
         String contextId = getSingleResult(context.newContext(CONTEXT_NAME));
         context.includeInContext(CONTEXT_NAME, contextIncludeRegex);
-        context.excludeFromContext(CONTEXT_NAME, contextExcludeRegex);
+
+        if (contextExcludeRegex != null && !contextExcludeRegex.isEmpty()) {
+            context.excludeFromContext(CONTEXT_NAME, contextExcludeRegex);
+        }
 
         api.sessionManagement.setSessionManagementMethod(contextId, "cookieBasedSessionManagement", null);
-
         api.httpSessions.createEmptySession(targetUrl, SESSION_NAME);
         api.httpSessions.setActiveSession(targetUrl, SESSION_NAME);
 
@@ -100,7 +102,7 @@ public class ZapService implements StatusDetailIndicator {
     }
 
     public void clearSession() throws ClientApiException {
-        api.core.newSession(SESSION_NAME, null);
+        api.core.newSession(SESSION_NAME, "true");
     }
 
     /**
@@ -176,7 +178,9 @@ public class ZapService implements StatusDetailIndicator {
     public Object startSpiderAsUser(String targetUrl, String apiSpecUrl, int maxDepth, String contextId, String userId) throws ClientApiException {
         log.info("Starting spider for targetUrl '{}' and with apiSpecUrl '{}' and maxDepth '{}'", targetUrl, apiSpecUrl, maxDepth);
 
-        api.openapi.importUrl(apiSpecUrl, "false");
+        if (apiSpecUrl != null && !apiSpecUrl.isEmpty()) {
+            api.openapi.importUrl(apiSpecUrl, "false");
+        }
         api.spider.setOptionMaxDepth(maxDepth);
         api.spider.setOptionParseComments(true);
         api.spider.setOptionParseGit(true);
@@ -244,10 +248,11 @@ public class ZapService implements StatusDetailIndicator {
         Collection<SpiderResult> spiderResult = new ArrayList<>(256);
         ApiResponse response = api.spider.fullResults(scanId);
         if (response instanceof ApiResponseList) {
-            spiderResult = ((ApiResponseList) response)
-                    .getItems().stream()
-                    .map(r -> new SpiderResult((ApiResponseSet) r))
-                    .collect(Collectors.toList());
+            ((ApiResponseList) response).getItems()
+                    .forEach(responseListItem -> spiderResult.addAll(((ApiResponseList) responseListItem)
+                            .getItems().stream()
+                            .map(r -> new SpiderResult((ApiResponseSet) r))
+                            .collect(Collectors.toList())));
         }
 
         List<SpiderResult> result = spiderResult.isEmpty()
@@ -389,7 +394,7 @@ public class ZapService implements StatusDetailIndicator {
         for (SpiderResult url : urls) {
             HttpStatus status = HttpStatus.valueOf(Integer.parseInt(url.getStatusCode()));
             if (status.is2xxSuccessful() || status.is3xxRedirection() || status.is1xxInformational()) {
-                String msg = Arrays.toString(api.core.messageHar(url.getMessageId()));
+                String msg = new String(api.core.messageHar(url.getMessageId()));
                 try {
                     JSONArray entries = (JSONArray) ((JSONObject) ((JSONObject) parser.parse(msg)).get("log")).get("entries");
                     if (entries.size() == 1) {

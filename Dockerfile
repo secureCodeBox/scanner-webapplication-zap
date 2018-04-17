@@ -1,7 +1,7 @@
 FROM gradle:alpine as builder
 USER root
 COPY . .
-RUN gradle build
+RUN gradle clean build
 
 FROM owasp/zap2docker-stable
 

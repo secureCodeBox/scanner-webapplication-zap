@@ -5,10 +5,9 @@ import de.otto.edison.status.domain.StatusDetail;
 import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.model.*;
 import io.securecodebox.zap.service.engine.model.zap.*;
+import io.securecodebox.zap.togglz.ZapFeature;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -26,14 +25,13 @@ public class ZapTaskService extends TaskService {
     @Autowired
     protected ZapConfiguration config;
 
-    private static final Logger LOG = LoggerFactory.getLogger(ZapTaskService.class);
 
     public ExternalTask[] getZapTasksByTopic(ZapTopic topicName) {
         return taskApiClient.getTasksByTopic(topicName);
     }
 
     public int getZapTaskCountByTopic(ZapTopic topicName) {
-        return taskApiClient.getTaskCountByTopic(topicName.getName());
+        return taskApiClient.getTaskCountByTopic(topicName);
     }
 
     /**
@@ -67,13 +65,17 @@ public class ZapTaskService extends TaskService {
 
     public CompleteTask completeZapScannerTask(ZapScannerTask fetchedTask, String result) {
         CompleteTask task = createZapScannerCompleteTask(fetchedTask, result);
-        taskApiClient.completeTask(fetchedTask.getId(), task);
+        if (!ZapFeature.DISABLE_COMPLETE_ZAP_PROCESS_TASKS.isActive()) {
+            taskApiClient.completeTask(fetchedTask.getId(), task);
+        }
         return task;
     }
 
     public CompleteTask completeZapSpiderTask(ZapSpiderTask fetchedTask, String result) {
         CompleteTask task = createZapSpiderCompleteTask(fetchedTask, result);
-        taskApiClient.completeTask(fetchedTask.getId(), task);
+        if (!ZapFeature.DISABLE_COMPLETE_ZAP_PROCESS_TASKS.isActive()) {
+            taskApiClient.completeTask(fetchedTask.getId(), task);
+        }
         return task;
     }
 
@@ -84,7 +86,7 @@ public class ZapTaskService extends TaskService {
         vars.setLastServiceMessage(new ProcessVariable("String", "ZAP spider task finished :-)", null));
 
         CompleteTask result = new CompleteTask();
-        result.setWorkerId(config.getAppId());
+        result.setWorkerId(zapTask.getWorkerId());
         result.setVariables(vars);
         return result;
     }
@@ -96,7 +98,7 @@ public class ZapTaskService extends TaskService {
         vars.setLastServiceMessage(new ProcessVariable("String", "ZAP scanner task finished :-)", null));
 
         CompleteTask result = new CompleteTask();
-        result.setWorkerId(config.getAppId());
+        result.setWorkerId(zapTask.getWorkerId());
         result.setVariables(vars);
         return result;
     }
@@ -107,13 +109,13 @@ public class ZapTaskService extends TaskService {
         try {
             int taskCountByTopic = getZapTaskCountByTopic(ZapTopic.ZAP_SCANNER);
             if (taskCountByTopic >= 0) {
-                LOG.debug("Internal health check: OK");
+                log.debug("Internal health check: OK");
                 return StatusDetail.statusDetail("TaskService ZAP scanner", Status.OK, "up and running", singletonMap("Open ZAP Scanner tasks", String.valueOf(taskCountByTopic)));
             } else {
                 return StatusDetail.statusDetail("TaskService ZAP scanner", Status.WARNING, "Couldn't find any ZAP scanner task", singletonMap("Open tasks", String.valueOf(taskCountByTopic)));
             }
         } catch (RuntimeException e) {
-            LOG.debug("Error: Indicating a health problem!", e);
+            log.debug("Error: Indicating a health problem!", e);
             return StatusDetail.statusDetail("TaskService ZAP Scanner", Status.ERROR, e.getMessage());
         }
     }

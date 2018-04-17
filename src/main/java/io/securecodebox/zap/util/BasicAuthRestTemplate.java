@@ -1,4 +1,4 @@
-package io.securecodebox.zap.rest;
+package io.securecodebox.zap.util;
 
 import lombok.ToString;
 import org.springframework.http.HttpRequest;
@@ -26,6 +26,7 @@ public class BasicAuthRestTemplate extends RestTemplate {
         setRequestFactory(new InterceptingClientHttpRequestFactory(getRequestFactory(), interceptors));
     }
 
+
     @ToString
     private static class BasicAuthorizationInterceptor implements ClientHttpRequestInterceptor {
         private final String username;
@@ -41,7 +42,7 @@ public class BasicAuthRestTemplate extends RestTemplate {
         @Override
         public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
             byte[] token = Base64.getEncoder().encode((username + ':' + password).getBytes());
-            request.getHeaders().add("Authorization", "Basic " + new String(token));
+            request.getHeaders().add("Authorization", "Basic " + new String(token, "UTF-8"));
             return execution.execute(request, body);
         }
     }

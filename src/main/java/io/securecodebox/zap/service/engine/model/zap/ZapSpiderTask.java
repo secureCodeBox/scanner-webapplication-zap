@@ -3,83 +3,84 @@ package io.securecodebox.zap.service.engine.model.zap;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.securecodebox.zap.service.engine.model.ExternalTask;
+import io.securecodebox.zap.service.engine.model.ProcessVariable;
 import io.securecodebox.zap.service.engine.model.Variables;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Data
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(callSuper = true)
 public class ZapSpiderTask extends ExternalTask {
-
-    public void setVariables(Variables variables) {
-        this.variables = variables;
-    }
-
     @JsonProperty("variables")
     private Variables variables;
 
-    public Variables getVariables() {
-        return variables;
-    }
-
     public boolean getAuthentication() {
-        return (variables.getAuthentication() != null && variables.getAuthentication().getValue() != null && !variables.getAuthentication().getValue().isEmpty()) && Boolean.parseBoolean(variables.getAuthentication().getValue());
+        return Boolean.parseBoolean(getValue(variables.getAuthentication()));
     }
 
     public String getLoggedInIndicator() {
-        return (variables.getLoggedInIndicator() != null && variables.getLoggedInIndicator().getValue() != null) ? variables.getLoggedInIndicator().getValue() : "";
+        return getValue(variables.getLoggedInIndicator());
     }
 
     public String getLoggedOutIndicator() {
-        return (variables.getLoggedOutIndicator() != null && variables.getLoggedOutIndicator().getValue() != null) ? variables.getLoggedOutIndicator().getValue() : "";
+        return getValue(variables.getLoggedOutIndicator());
     }
 
     public String getLoginPassword() {
-        return (variables.getLoginPassword() != null && variables.getLoginPassword().getValue() != null) ? variables.getLoginPassword().getValue() : "";
+        return getValue(variables.getLoginPassword());
     }
 
     public String getLoginSite() {
-        return (variables.getLoginSite() != null && variables.getLoginSite().getValue() != null) ? variables.getLoginSite().getValue() : "";
+        return getValue(variables.getLoginSite());
     }
 
     public String getLoginUser() {
-        return (variables.getLoginUser() != null && variables.getLoginUser().getValue() != null) ? variables.getLoginUser().getValue() : "";
+        return getValue(variables.getLoginUser());
     }
 
     public String getPasswordFieldId() {
-        return (variables.getPasswordFieldId() != null && variables.getPasswordFieldId().getValue() != null) ? variables.getPasswordFieldId().getValue() : "";
+        return getValue(variables.getPasswordFieldId());
     }
 
     public String getSpiderExcludeDuplicates() {
-        return (variables.getSpiderExcludeDuplicates() != null && variables.getSpiderExcludeDuplicates().getValue() != null) ? variables.getSpiderExcludeDuplicates().getValue() : "";
+        return getValue(variables.getSpiderExcludeDuplicates());
     }
 
     public String getSpiderApiSpecUrl() {
-        return variables.getSpiderApiSpecUrl() != null && variables.getSpiderApiSpecUrl().getValue() != null ? variables.getSpiderApiSpecUrl().getValue() : "";
+        return getValue(variables.getSpiderApiSpecUrl());
     }
 
     public String getSpiderExcludeRegexes() {
-        return (variables.getSpiderExcludeRegexes() != null && variables.getSpiderExcludeRegexes().getValue() != null) ? variables.getSpiderExcludeRegexes().getValue() : "";
+        return getValue(variables.getSpiderExcludeRegexes());
     }
 
     public String getSpiderIncludeRegexes() {
-        return (variables.getSpiderIncludeRegexes() != null && variables.getSpiderIncludeRegexes().getValue() != null) ? variables.getSpiderIncludeRegexes().getValue() : "";
+        return getValue(variables.getSpiderIncludeRegexes());
     }
 
     public int getSpiderMaxDepth() {
-        return (variables.getSpiderMaxDepth() != null && variables.getSpiderMaxDepth().getValue() != null && !variables.getSpiderMaxDepth().getValue().isEmpty()) ? Integer.parseInt(variables.getSpiderMaxDepth().getValue()) : 1;
+        try {
+            return Integer.parseInt(getValue(variables.getSpiderMaxDepth()));
+        } catch (NumberFormatException ignored) {
+            return 1;
+        }
     }
 
     public String getTargetUrl() {
-        return (variables.getTargetUrl() != null && variables.getTargetUrl().getValue() != null) ? variables.getTargetUrl().getValue() : "";
+        return getValue(variables.getTargetUrl());
     }
 
     public String getUsernameFieldId() {
-        return (variables.getUsernameFieldId() != null && variables.getUsernameFieldId().getValue() != null) ? variables.getUsernameFieldId().getValue() : "";
+        return getValue(variables.getUsernameFieldId());
     }
 
     public String getCsrfTokenId() {
-        return (variables.getCsrfTokenId() != null && variables.getCsrfTokenId().getValue() != null) ? variables.getCsrfTokenId().getValue() : "";
+        return getValue(variables.getCsrfTokenId());
+    }
+
+
+    private static String getValue(ProcessVariable var) {
+        return (var != null && var.getValue() != null) ? var.getValue() : "";
     }
 }

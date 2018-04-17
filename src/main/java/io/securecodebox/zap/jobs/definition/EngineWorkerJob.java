@@ -9,7 +9,7 @@ import io.securecodebox.zap.service.engine.model.CompleteTask;
 import io.securecodebox.zap.service.engine.model.zap.ZapScannerTask;
 import io.securecodebox.zap.service.engine.model.zap.ZapSpiderTask;
 import io.securecodebox.zap.service.engine.model.zap.ZapTopic;
-import io.securecodebox.zap.service.zap2.ZapService;
+import io.securecodebox.zap.service.zap.ZapService;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +27,7 @@ import static java.time.Duration.ofMinutes;
 @Slf4j
 @ToString
 public class EngineWorkerJob implements JobRunnable {
-    public static final String JOB_TYPE = "engine/worker/owasp/zap2";
+    public static final String JOB_TYPE = "engine/worker/owasp/zap";
 
     @Autowired
     private ZapConfiguration config;
@@ -86,8 +86,8 @@ public class EngineWorkerJob implements JobRunnable {
 
     private void performSpiderTask(JobEventPublisher publisher, ZapSpiderTask task) throws ClientApiException, UnsupportedEncodingException {
         String contextId, userId;
+        contextId = service.createContext(task.getTargetUrl(), task.getSpiderIncludeRegexes(), task.getSpiderExcludeRegexes());
         if (task.getAuthentication()) {
-            contextId = service.createContext(task.getTargetUrl(), task.getSpiderIncludeRegexes(), task.getSpiderExcludeRegexes());
             userId = service.configureAuthentication(contextId, task.getLoginSite(), task.getUsernameFieldId(), task.getPasswordFieldId(), task.getLoginUser(), task.getLoginPassword(), "", task.getLoggedInIndicator(), task.getLoggedOutIndicator(), task.getCsrfTokenId());
         } else {
             contextId = "-1";
@@ -109,8 +109,8 @@ public class EngineWorkerJob implements JobRunnable {
 
     private void performScannerTask(JobEventPublisher publisher, ZapScannerTask task) throws ClientApiException, UnsupportedEncodingException {
         String contextId, userId;
+        contextId = service.createContext(task.getTargetUrl(), task.getScannerIncludeRegexes(), task.getScannerExcludeRegexes());
         if (task.getAuthentication()) {
-            contextId = service.createContext(task.getTargetUrl(), task.getScannerIncludeRegexes(), task.getScannerExcludeRegexes());
             userId = service.configureAuthentication(contextId, task.getLoginSite(), task.getUsernameFieldId(), task.getPasswordFieldId(), task.getLoginUser(), task.getLoginPassword(), "", task.getLoggedInIndicator(), task.getLoggedOutIndicator(), task.getCsrfTokenId());
         } else {
             contextId = "-1";

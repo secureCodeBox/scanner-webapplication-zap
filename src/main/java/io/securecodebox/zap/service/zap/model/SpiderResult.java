@@ -1,4 +1,4 @@
-package io.securecodebox.zap.service.zap2.model;
+package io.securecodebox.zap.service.zap.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
@@ -21,6 +21,9 @@ public class SpiderResult {
     private String cookies;
 
 
+    public SpiderResult() {
+    }
+
     /**
      * @param response {@code ApiResponseSet} returned from the related ZAP API call
      * @see org.zaproxy.clientapi.core.Alert
@@ -32,7 +35,7 @@ public class SpiderResult {
         messageId = response.getStringValue("messageId");
         url = response.getStringValue("url");
         requestDateTime = response.getStringValue("requestDateTime");
-        responseTime = Long.parseLong(response.getStringValue("responseTime"));
+        responseTime = response.getStringValue("responseTime") != null ? Long.parseLong(response.getStringValue("responseTime")) : -1;
         postData = response.getStringValue("postData");
         headers = response.getStringValue("headers");
         queryString = response.getStringValue("queryString");
