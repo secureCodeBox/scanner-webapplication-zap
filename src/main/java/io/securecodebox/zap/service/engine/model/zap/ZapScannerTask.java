@@ -53,7 +53,7 @@ public class ZapScannerTask extends ExternalTask {
     }
 
     public String getSpiderResult() {
-        return getValue(variables.getSpiderResult());
+        return getValue(variables.getSpiderRawResult());
     }
 
     public String getTargetUrl() {

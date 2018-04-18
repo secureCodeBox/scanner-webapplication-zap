@@ -32,8 +32,10 @@ public class Variables {
     private ProcessVariable csrfTokenId;
 
     // TODO: rename
-    @JsonProperty("PROCESS_SPIDER_RAW_FINDINGS")
+    @JsonProperty("PROCESS_SPIDER_FINDINGS")
     private ProcessVariable spiderResult;
+    @JsonProperty("PROCESS_SPIDER_RAW_FINDINGS")
+    private ProcessVariable spiderRawResult;
     @JsonProperty("PROCESS_SPIDER_ID")
     private ProcessVariable spiderMicroserviceId;
     @JsonProperty("ZAP_SPIDER_EXCLUDE_DUPLICATES")
@@ -51,8 +53,10 @@ public class Variables {
 
     @JsonProperty("PROCESS_SCANNER_ID")
     private ProcessVariable scannerMicroserviceId;
-    @JsonProperty("PROCESS_RAW_FINDINGS")
+    @JsonProperty("PROCESS_FINDINGS")
     private ProcessVariable scannerResult;
+    @JsonProperty("PROCESS_RAW_FINDINGS")
+    private ProcessVariable rawScannerResult;
     @JsonProperty("ZAP_SCANNER_EXCLUDE_REGEX")
     private ProcessVariable scannerExcludeRegexes;
     @JsonProperty("ZAP_SCANNER_INCLUDE_REGEX")

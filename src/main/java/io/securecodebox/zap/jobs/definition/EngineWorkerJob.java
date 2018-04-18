@@ -98,7 +98,7 @@ public class EngineWorkerJob implements JobRunnable {
 
         String result = service.retrieveSpiderResult(scanId);
         if (result != null) {
-            CompleteTask completedTask = taskService.completeZapSpiderTask(task, result);
+            CompleteTask completedTask = taskService.completeTask(task, result);
             publisher.info("Completed spider task: " + completedTask);
         } else {
             publisher.warn("Skipped task completion due to a missing ZAP scan result.");
@@ -122,7 +122,7 @@ public class EngineWorkerJob implements JobRunnable {
 
         String result = service.retrieveScannerResult(scanId, task.getTargetUrl());
         if (!"{}".equals(result)) {  // Scanner didn't fail?
-            CompleteTask completedTask = taskService.completeZapScannerTask(task, result);
+            CompleteTask completedTask = taskService.completeTask(task, result);
             publisher.info("Completed scanner task: " + completedTask);
         } else {
             publisher.warn("Skipped task completion due to a missing ZAP scan result.");

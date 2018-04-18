@@ -1,7 +1,7 @@
 package io.securecodebox.zap.service.engine.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.Data;
+        import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+        import lombok.Data;
 
 
 /**
