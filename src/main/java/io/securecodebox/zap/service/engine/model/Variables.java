@@ -20,15 +20,23 @@ public class Variables {
     private ProcessVariable processUuid;
     @JsonProperty("ZAP_AUTHENTICATION")
     private ProcessVariable authentication;
+    @JsonProperty("ZAP_LOGGED_IN_INDICATOR")
     private ProcessVariable loggedInIndicator;
+    @JsonProperty("ZAP_LOGGED_OUT_INDICATOR")
     private ProcessVariable loggedOutIndicator;
+    @JsonProperty("ZAP_LOGIN_PW")
     private ProcessVariable loginPassword;
+    @JsonProperty("ZAP_LOGIN_SITE")
     private ProcessVariable loginSite;
+    @JsonProperty("ZAP_LOGIN_USER")
     private ProcessVariable loginUser;
+    @JsonProperty("ZAP_PW_FIELD_ID")
     private ProcessVariable passwordFieldId;
     @JsonProperty("ZAP_TARGET_URL")
     private ProcessVariable targetUrl;
+    @JsonProperty("ZAP_USERNAME_FIELD_ID")
     private ProcessVariable usernameFieldId;
+    @JsonProperty("ZAP_CSRF_TOKEN_ID")
     private ProcessVariable csrfTokenId;
 
     // TODO: rename
