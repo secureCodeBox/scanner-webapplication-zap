@@ -20,6 +20,7 @@
 bin/
 tmp/
 build/
+out/
 
 # External tool builders (in top folder and all submodules)
 target/

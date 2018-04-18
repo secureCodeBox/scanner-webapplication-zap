@@ -17,28 +17,4 @@ public class TaskTopic {
     private String topicName;
     private Number lockDuration;
     private List<String> variables;
-
-    public String getTopicName() {
-        return topicName;
-    }
-
-    public void setTopicName(String topicName) {
-        this.topicName = topicName;
-    }
-
-    public Number getLockDuration() {
-        return lockDuration;
-    }
-
-    public void setLockDuration(Number lockDuration) {
-        this.lockDuration = lockDuration;
-    }
-
-    public List<String> getVariables() {
-        return variables;
-    }
-
-    public void setVariables(List<String> variables) {
-        this.variables = variables;
-    }
 }

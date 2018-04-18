@@ -1,7 +1,7 @@
 package io.securecodebox.zap.service.engine.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.Data;
+        import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+        import lombok.Data;
 
 
 /**
@@ -13,20 +13,4 @@ import lombok.Data;
 public class CompleteTask {
     private String workerId;
     private Variables variables;
-
-    public String getWorkerId() {
-        return workerId;
-    }
-
-    public Variables getVariables() {
-        return variables;
-    }
-
-    public void setWorkerId(String workerId) {
-        this.workerId = workerId;
-    }
-
-    public void setVariables(Variables variables) {
-        this.variables = variables;
-    }
 }
