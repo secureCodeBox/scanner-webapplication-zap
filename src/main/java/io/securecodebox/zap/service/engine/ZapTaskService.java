@@ -21,9 +21,7 @@ import org.springframework.stereotype.Service;
 import org.zaproxy.zap.spider.SpiderTask;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import static java.util.Collections.singletonMap;
 
@@ -90,7 +88,7 @@ public class ZapTaskService extends TaskService {
         ObjectMapper objectMapper = new ObjectMapper();
         String findingsAsJson;
         try {
-            findingsAsJson = objectMapper.writeValueAsString(findings);
+            findingsAsJson = objectMapper.writeValueAsString(objectMapper.writeValueAsString(findings));
         }
         catch (JsonProcessingException e){
             log.error(e.getMessage());
@@ -98,21 +96,26 @@ public class ZapTaskService extends TaskService {
         }
 
         Variables vars = new Variables();
+        HashMap<String, String> valueInfoContent = new HashMap<>();
+        valueInfoContent.put("objectTypeName", "java.lang.String");
+        valueInfoContent.put("serializationDataFormat", "application/json");
+        JSONObject valueInfo = new JSONObject();
+        valueInfo.put("valueInfo", new JSONObject(valueInfoContent));
 
         //todo: Remove the instanceof checks when spider and scanner have the same data model
         if(zapTask instanceof ZapSpiderTask) {
             vars.setLastServiceMessage(new ProcessVariable("String", "ZAP spider task finished :-)", null));
             vars.setSpiderType(new ProcessVariable("String", config.getSpiderType(), null));
             vars.setSpiderMicroserviceId(new ProcessVariable("String", config.getAppId(), null));
-            vars.setSpiderResult(new ProcessVariable("json", findingsAsJson, null));
-            vars.setSpiderRawResult(new ProcessVariable("json", zapResult, null));
+            vars.setSpiderResult(new ProcessVariable("Object", findingsAsJson, new JSONObject(valueInfoContent)));
+            vars.setSpiderRawResult(new ProcessVariable("Object", zapResult, new JSONObject(valueInfoContent)));
         }
         if(zapTask instanceof ZapScannerTask){
             vars.setLastServiceMessage(new ProcessVariable("String", "ZAP scanner task finished :-)", null));
             vars.setScannerType(new ProcessVariable("String", config.getScannerType(), null));
             vars.setScannerMicroserviceId(new ProcessVariable("String", config.getAppId(), null));
-            vars.setScannerResult(new ProcessVariable("json", findingsAsJson, null));
-            vars.setRawScannerResult(new ProcessVariable("json", zapResult, null));
+            vars.setScannerResult(new ProcessVariable("Object", findingsAsJson, new JSONObject(valueInfoContent)));
+            vars.setRawScannerResult(new ProcessVariable("Object", zapResult, new JSONObject(valueInfoContent)));
         }
 
         CompleteTask result = new CompleteTask();

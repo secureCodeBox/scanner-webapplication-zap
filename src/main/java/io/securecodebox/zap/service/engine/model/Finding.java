@@ -25,7 +25,7 @@ public class Finding {
     private String osiLayer;
     @JsonAlias("risk")
     private String severity;
-    private String reference;
+    private Reference reference;
     @JsonAlias("solution")
     private String hint;
     @JsonAlias("url")

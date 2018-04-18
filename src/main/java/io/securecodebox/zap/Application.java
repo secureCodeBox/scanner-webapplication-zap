@@ -1,11 +1,16 @@
 package io.securecodebox.zap;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.securecodebox.zap.service.engine.model.Finding;
+import io.securecodebox.zap.service.engine.model.Reference;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.scheduling.annotation.EnableScheduling;
+
+import java.io.IOException;
 
 
 @Configuration
