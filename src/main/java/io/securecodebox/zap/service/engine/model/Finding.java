@@ -44,4 +44,8 @@ public class Finding {
         }
         return uuid;
     }
+
+    public String getSeverity() {
+        return severity != null ? severity.toUpperCase() : "null";
+    }
 }

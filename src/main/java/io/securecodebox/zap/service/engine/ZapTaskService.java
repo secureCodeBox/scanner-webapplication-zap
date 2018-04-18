@@ -98,22 +98,27 @@ public class ZapTaskService extends TaskService {
         }
 
         Variables vars = new Variables();
-        vars.setSpiderMicroserviceId(new ProcessVariable("String", config.getAppId(), null));
-        vars.setLastServiceMessage(new ProcessVariable("String", "ZAP spider task finished :-)", null));
 
         //todo: Remove the instanceof checks when spider and scanner have the same data model
         if(zapTask instanceof ZapSpiderTask) {
+            vars.setLastServiceMessage(new ProcessVariable("String", "ZAP spider task finished :-)", null));
+            vars.setSpiderType(new ProcessVariable("String", config.getSpiderType(), null));
+            vars.setSpiderMicroserviceId(new ProcessVariable("String", config.getAppId(), null));
             vars.setSpiderResult(new ProcessVariable("json", findingsAsJson, null));
             vars.setSpiderRawResult(new ProcessVariable("json", zapResult, null));
         }
         if(zapTask instanceof ZapScannerTask){
+            vars.setLastServiceMessage(new ProcessVariable("String", "ZAP scanner task finished :-)", null));
+            vars.setScannerType(new ProcessVariable("String", config.getScannerType(), null));
+            vars.setScannerMicroserviceId(new ProcessVariable("String", config.getAppId(), null));
             vars.setScannerResult(new ProcessVariable("json", findingsAsJson, null));
             vars.setRawScannerResult(new ProcessVariable("json", zapResult, null));
         }
 
-
         CompleteTask result = new CompleteTask();
         result.setWorkerId(zapTask.getWorkerId());
+
+        log.info("########################################################Task WorkerId: " + zapTask.getWorkerId() + "#################################################");
         result.setVariables(vars);
         return result;
     }

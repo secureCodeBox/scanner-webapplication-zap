@@ -38,6 +38,8 @@ public class Variables {
     private ProcessVariable spiderRawResult;
     @JsonProperty("PROCESS_SPIDER_ID")
     private ProcessVariable spiderMicroserviceId;
+    @JsonProperty("PROCESS_SPIDER_TYPE")
+    private ProcessVariable spiderType;
     @JsonProperty("ZAP_SPIDER_EXCLUDE_DUPLICATES")
     private ProcessVariable spiderExcludeDuplicates;
     @JsonProperty("ZAP_SPIDER_API_SPEC_URL")
@@ -55,6 +57,8 @@ public class Variables {
     private ProcessVariable scannerMicroserviceId;
     @JsonProperty("PROCESS_FINDINGS")
     private ProcessVariable scannerResult;
+    @JsonProperty("PROCESS_SCANNER_TYPE")
+    private ProcessVariable scannerType;
     @JsonProperty("PROCESS_RAW_FINDINGS")
     private ProcessVariable rawScannerResult;
     @JsonProperty("ZAP_SCANNER_EXCLUDE_REGEX")

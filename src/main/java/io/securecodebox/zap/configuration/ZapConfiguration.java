@@ -19,6 +19,8 @@ public class ZapConfiguration {
     private String zapPort;
     private String camundaUsername;
     private String camundaPassword;
+    private String spiderType;
+    private String scannerType;
 
 
     /**
