@@ -1,21 +1,20 @@
 package io.securecodebox.zap.service.engine.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
-@JsonInclude(JsonInclude.Include.NON_EMPTY)
-@Data
-public class Reference {
 
+@Data
+@AllArgsConstructor
+@JsonInclude(Include.NON_EMPTY)
+public class Reference {
     private String id;
     private String source;
 
-    public Reference(String source) {
-        this.source = source;
-    }
 
-    public Reference(String id, String source) {
-        this.id = id;
+    public Reference(String source) {
         this.source = source;
     }
 }

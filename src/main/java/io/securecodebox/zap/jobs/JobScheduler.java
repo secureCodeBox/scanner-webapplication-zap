@@ -24,10 +24,16 @@ public class JobScheduler {
     private static final DateTimeFormatter dateFormatter = new DateTimeFormatterBuilder()
             .append(DateTimeFormatter.ISO_LOCAL_TIME)
             .toFormatter(Locale.ENGLISH);
+
+    private final JobService jobService;
+    private final ZapTaskService taskService;
+
+
     @Autowired
-    private JobService jobService;
-    @Autowired
-    private ZapTaskService taskService;
+    public JobScheduler(JobService jobService, ZapTaskService taskService) {
+        this.jobService = jobService;
+        this.taskService = taskService;
+    }
 
 
     /**

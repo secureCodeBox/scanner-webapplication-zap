@@ -3,6 +3,7 @@ package io.securecodebox.zap.service.engine.model;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+
 @Data
 @AllArgsConstructor
 public class ProcessVariable {

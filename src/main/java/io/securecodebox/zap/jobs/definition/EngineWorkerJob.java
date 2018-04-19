@@ -29,12 +29,17 @@ import static java.time.Duration.ofMinutes;
 public class EngineWorkerJob implements JobRunnable {
     public static final String JOB_TYPE = "engine/worker/owasp/zap";
 
+    private final ZapConfiguration config;
+    private final ZapTaskService taskService;
+    private final ZapService service;
+
+
     @Autowired
-    private ZapConfiguration config;
-    @Autowired
-    private ZapTaskService taskService;
-    @Autowired
-    private ZapService service;
+    public EngineWorkerJob(ZapConfiguration config, ZapTaskService taskService, ZapService service) {
+        this.config = config;
+        this.taskService = taskService;
+        this.service = service;
+    }
 
 
     @Override
@@ -121,11 +126,11 @@ public class EngineWorkerJob implements JobRunnable {
         String scanId = (String) service.startScannerAsUser(task.getTargetUrl(), contextId, userId);
 
         String result = service.retrieveScannerResult(scanId, task.getTargetUrl());
-        if (!"{}".equals(result)) {  // Scanner didn't fail?
+        if ("{}".equals(result)) {  // Scanner failed?
+            publisher.warn("Skipped task completion due to a missing ZAP scan result.");
+        } else {
             CompleteTask completedTask = taskService.completeTask(task, result);
             publisher.info("Completed scanner task: " + completedTask);
-        } else {
-            publisher.warn("Skipped task completion due to a missing ZAP scan result.");
         }
 
         service.clearSession();

@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @ToString
 public abstract class TaskService implements StatusDetailIndicator {
-
     @Autowired
     protected EngineTaskApiClient taskApiClient;
 

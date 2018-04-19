@@ -50,23 +50,18 @@ public class ZapService implements StatusDetailIndicator {
     private static final String AUTH_FORM_BASED = "formBasedAuthentication";
     private static final String AUTH_SCRIPT_BASED = "scriptBasedAuthentication";
 
-    /**
-     * The config containing all service specific properties.
-     */
-    @Autowired
-    private ZapConfiguration config;
-
+    private final ZapConfiguration config;
     private ClientApi api;
 
+
+    @Autowired
+    public ZapService(ZapConfiguration config) {
+        this.config = config;
+    }
 
     @PostConstruct
     public void init() {
         api = new ClientApi(config.getZapHost(), config.getZapPort());
-    }
-
-
-    public String getVersion() throws ClientApiException {
-        return getSingleResult(api.core.version());
     }
 
 
@@ -245,14 +240,14 @@ public class ZapService implements StatusDetailIndicator {
             log.error("Couldn't wait until spider finished!", e);
         }
 
-        Collection<SpiderResult> spiderResult = new ArrayList<>(256);
         ApiResponse response = api.spider.fullResults(scanId);
+        Collection<SpiderResult> spiderResult = new ArrayList<>(1);
         if (response instanceof ApiResponseList) {
-            ((ApiResponseList) response).getItems()
-                    .forEach(responseListItem -> spiderResult.addAll(((ApiResponseList) responseListItem)
-                            .getItems().stream()
-                            .map(r -> new SpiderResult((ApiResponseSet) r))
-                            .collect(Collectors.toList())));
+            spiderResult = ((ApiResponseList) response).getItems().stream()
+                    .map(i -> ((ApiResponseList) i).getItems())
+                    .flatMap(Collection::stream)
+                    .map(r -> new SpiderResult((ApiResponseSet) r))
+                    .collect(Collectors.toList());
         }
 
         List<SpiderResult> result = spiderResult.isEmpty()
@@ -385,7 +380,6 @@ public class ZapService implements StatusDetailIndicator {
 
     /**
      * Keep all result URLs with HTTP status code 2xx/3xx/1xx and extend them with additional information.
-     * TODO Why exactly is this necessary?!
      */
     private List<SpiderResult> filterAndExtendSpiderResults(Collection<SpiderResult> urls) throws ClientApiException {
         JSONParser parser = new JSONParser();
@@ -443,7 +437,7 @@ public class ZapService implements StatusDetailIndicator {
     @Override
     public StatusDetail statusDetail() {
         try {
-            String v = getVersion();
+            String v = getSingleResult(api.core.version());
             if (v != null && !v.isEmpty() && v.contains("version")) {
                 log.debug("Internal status check: ok");
                 return StatusDetail.statusDetail(getClass().getSimpleName(), Status.OK, "up and running", singletonMap("ZAP Version", v));

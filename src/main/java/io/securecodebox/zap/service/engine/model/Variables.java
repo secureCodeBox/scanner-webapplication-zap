@@ -2,6 +2,7 @@ package io.securecodebox.zap.service.engine.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
@@ -9,12 +10,11 @@ import java.lang.reflect.Field;
 import java.util.LinkedList;
 import java.util.List;
 
+
 @Data
-@JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonIgnoreProperties()
+@JsonInclude(Include.NON_NULL)
+@JsonIgnoreProperties
 public class Variables {
-
-
     @JsonProperty("ZAP_LAST_SERVICE_MESSAGE")
     private ProcessVariable lastServiceMessage;
     private ProcessVariable processUuid;
@@ -76,16 +76,14 @@ public class Variables {
     @JsonProperty("ZAP_SCANNER_TARGET_URL")
     private ProcessVariable scannerTargetUrl;
 
-    public static List<String> getVariablesAsStringArray(){
 
+    public static List<String> getVariablesAsStringArray() {
         List<String> result = new LinkedList<>();
-
-        for(Field field : Variables.class.getDeclaredFields()){
-            if(field.getAnnotationsByType(JsonProperty.class).length != 0){
-                result.add(field.getAnnotation(JsonProperty.class).value());
-            }
-            else {
+        for (Field field : Variables.class.getDeclaredFields()) {
+            if (field.getAnnotationsByType(JsonProperty.class).length == 0) {
                 result.add(field.getName());
+            } else {
+                result.add(field.getAnnotation(JsonProperty.class).value());
             }
         }
         return result;

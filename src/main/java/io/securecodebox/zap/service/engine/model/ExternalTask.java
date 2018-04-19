@@ -6,12 +6,12 @@ import lombok.Data;
 
 /**
  * DTO representing the result of Camunda's REST API.
+ *
  * @see <a href="https://docs.camunda.org/manual/7.8/reference/rest/external-task/get/">Get External Task</a>
  */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ExternalTask {
-
     private String activityId;
     private String activityInstanceId;
     private String errorMessage;

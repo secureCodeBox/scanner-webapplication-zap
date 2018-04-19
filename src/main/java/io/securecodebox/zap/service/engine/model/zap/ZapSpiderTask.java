@@ -8,12 +8,14 @@ import io.securecodebox.zap.service.engine.model.Variables;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
+
 @Data
 @EqualsAndHashCode(callSuper = true)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ZapSpiderTask extends ExternalTask {
     @JsonProperty("variables")
     private Variables variables;
+
 
     public boolean getAuthentication() {
         return Boolean.parseBoolean(getValue(variables.getAuthentication()));
