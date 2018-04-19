@@ -73,7 +73,7 @@ public class ZapScannerTask extends ExternalTask {
         if(targetString != null && !targetString.isEmpty()){
             ObjectMapper objectMapper = new ObjectMapper();
             try {
-                return objectMapper.readValue(targetString,
+                return objectMapper.readValue(objectMapper.readValue(targetString, String.class),
                         objectMapper.getTypeFactory().constructCollectionType(List.class, Target.class));
             }
             catch (IOException e){

@@ -34,14 +34,14 @@ import java.util.Map;
 @Data
 public class Target {
 
-    public Target(String location) {
+    public Target(@JsonProperty("location") String location) {
         this.location = location;
     }
 
-    @JsonProperty
+    @JsonProperty("name")
     private String name;
-    @JsonProperty
+    @JsonProperty("location")
     private String location;
-    @JsonProperty
+    @JsonProperty("attributes")
     private Map<String, Object> attributes = new HashMap<>();
 }
