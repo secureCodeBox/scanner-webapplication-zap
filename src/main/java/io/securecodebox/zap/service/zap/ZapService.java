@@ -12,6 +12,7 @@ import de.otto.edison.status.domain.Status;
 import de.otto.edison.status.domain.StatusDetail;
 import de.otto.edison.status.indicator.StatusDetailIndicator;
 import io.securecodebox.zap.configuration.ZapConfiguration;
+import io.securecodebox.zap.service.engine.model.Target;
 import io.securecodebox.zap.service.zap.model.SpiderResult;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -137,32 +138,26 @@ public class ZapService implements StatusDetailIndicator {
     }
 
 
-    public void recallSpiderToScanner(String json) {
-        List<SpiderResult> requests;
-        try {
-            requests = new ObjectMapper().readValue(json, new TypeReference<List<SpiderResult>>() {});  // Convert JSON to list
-            requests = requests.stream().filter(l -> !l.getUrl().isEmpty()).collect(Collectors.toList());
-        } catch (IOException e) {
-            log.error("Couldn't convert JSON string to List<SpiderResult>", e);
-            return;
-        }
+    public void recallTarget(List<Target> targets) {
 
-        if (!requests.isEmpty()) {
-            Collection<Cookie> cookies = enforceSessionCookie(requests.get(0).getUrl());
+        if (!targets.isEmpty()) {
+            Collection<Cookie> cookies = enforceSessionCookie(targets.get(0).getLocation());
 
-            log.debug("Trying to recall #{} requests.", requests.size());
+            log.debug("Trying to recall #{} requests.", targets.size());
             try (AsyncHttpClient client = new AsyncHttpClient()) {  // https://asynchttpclient.github.io/async-http-client/proxy.html
-                for (SpiderResult request : requests) {
-                    switch (request.getMethod()) {
-                        case "GET":
-                            callAsyncGetRequest(client, request, cookies);
-                            break;
-                        case "POST":
-                            callAsyncPostRequest(client, request, cookies);
-                            break;
-                        default:
-                            log.debug("Nothing to do, method: {} URL:{}", request.getMethod(), request.getUrl());
-                            break;
+                for (Target request : targets) {
+                    if(request.getAttributes().keySet().contains("method")) {
+                        switch ((String) request.getAttributes().get("method")) {
+                            case "GET":
+                                callAsyncGetRequest(client, request.getLocation(), cookies);
+                                break;
+                            case "POST":
+                                callAsyncPostRequest(client, request.getLocation(), cookies);
+                                break;
+                            default:
+                                log.debug("Nothing to do, method: {} URL:{}", request.getAttributes().get("method"), request.getLocation());
+                                break;
+                        }
                     }
                 }
             } catch (InterruptedException | ExecutionException e) {
@@ -333,10 +328,10 @@ public class ZapService implements StatusDetailIndicator {
         return result;
     }
 
-    private void callAsyncGetRequest(AsyncHttpClient client, SpiderResult request, Collection<Cookie> cookies) throws InterruptedException, ExecutionException {
-        log.debug("Call async GET:{} with ZAP: {}:{} and #cookies: {}", request.getUrl(), config.getZapHost(), config.getZapPort(), cookies.size());
+    private void callAsyncGetRequest(AsyncHttpClient client, String request, Collection<Cookie> cookies) throws InterruptedException, ExecutionException {
+        log.debug("Call async GET:{} with ZAP: {}:{} and #cookies: {}", request, config.getZapHost(), config.getZapPort(), cookies.size());
 
-        client.prepareGet(request.getUrl())
+        client.prepareGet(request)
                 .setProxyServer(new ProxyServer(config.getZapHost(), config.getZapPort()))
                 .setCookies(cookies)
                 .execute(new AsyncCompletionHandler<Response>() {
@@ -354,12 +349,12 @@ public class ZapService implements StatusDetailIndicator {
                 }).get();
     }
 
-    private void callAsyncPostRequest(AsyncHttpClient client, SpiderResult request, Collection<Cookie> cookies) {
-        log.debug("Call async POST:{} with ZAP: {}:{} and Post-Data: {}", request.getUrl(), config.getZapHost(), config.getZapPort(), request.getPostData());
+    private void callAsyncPostRequest(AsyncHttpClient client, String request, Collection<Cookie> cookies) {
+        log.debug("Call async POST:{} with ZAP: {}:{} and Post-Data: {}", request, config.getZapHost(), config.getZapPort());
 
-        client.preparePost(request.getUrl())
+        client.preparePost(request)
                 .setProxyServer(new ProxyServer(config.getZapHost(), config.getZapPort()))
-                .setBody(request.getPostData())
+                .setBody(request)
                 .setCookies(cookies)
                 .setHeader("Content-Type", "application/x-www-form-urlencoded")
                 .execute(new AsyncCompletionHandler<Response>() {

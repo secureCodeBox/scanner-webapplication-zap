@@ -72,19 +72,16 @@ public class ZapTaskService extends TaskService {
         return result;
     }
 
-    public CompleteTask completeTask(ExternalTask fetchedTask, String result) {
-        CompleteTask task = createCompleteTask(fetchedTask, result);
+    public CompleteTask completeTask(ExternalTask fetchedTask, List<Finding> findings, String rawResult) {
+        CompleteTask task = createCompleteTask(fetchedTask, findings, rawResult);
         if (!ZapFeature.DISABLE_COMPLETE_ZAP_PROCESS_TASKS.isActive()) {
             taskApiClient.completeTask(fetchedTask.getId(), task);
         }
         return task;
     }
 
-    private CompleteTask createCompleteTask(ExternalTask zapTask, String zapResult) {
+    private CompleteTask createCompleteTask(ExternalTask zapTask, List<Finding> findings, String rawResult) {
 
-        List<Finding> findings = createFindings(zapResult);
-
-        log.info("Created Findings: " + findings);
         ObjectMapper objectMapper = new ObjectMapper();
         String findingsAsJson;
         try {
@@ -108,14 +105,14 @@ public class ZapTaskService extends TaskService {
             vars.setSpiderType(new ProcessVariable("String", config.getSpiderType(), null));
             vars.setSpiderMicroserviceId(new ProcessVariable("String", config.getAppId(), null));
             vars.setSpiderResult(new ProcessVariable("Object", findingsAsJson, new JSONObject(valueInfoContent)));
-            vars.setSpiderRawResult(new ProcessVariable("Object", zapResult, new JSONObject(valueInfoContent)));
+            vars.setSpiderRawResult(new ProcessVariable("Object", rawResult, new JSONObject(valueInfoContent)));
         }
         if(zapTask instanceof ZapScannerTask){
             vars.setLastServiceMessage(new ProcessVariable("String", "ZAP scanner task finished :-)", null));
             vars.setScannerType(new ProcessVariable("String", config.getScannerType(), null));
             vars.setScannerMicroserviceId(new ProcessVariable("String", config.getAppId(), null));
             vars.setScannerResult(new ProcessVariable("Object", findingsAsJson, new JSONObject(valueInfoContent)));
-            vars.setRawScannerResult(new ProcessVariable("Object", zapResult, new JSONObject(valueInfoContent)));
+            vars.setRawScannerResult(new ProcessVariable("Object", rawResult, new JSONObject(valueInfoContent)));
         }
 
         CompleteTask result = new CompleteTask();
@@ -126,7 +123,7 @@ public class ZapTaskService extends TaskService {
         return result;
     }
 
-    private List<Finding> createFindings(String zapResult) {
+    public List<Finding> createFindings(String zapResult) {
 
         JSONParser jsonParser = new JSONParser();
         final List<Finding> scanResults = new ArrayList<>();

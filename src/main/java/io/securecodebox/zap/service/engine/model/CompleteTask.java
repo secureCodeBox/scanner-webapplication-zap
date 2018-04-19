@@ -11,6 +11,7 @@ package io.securecodebox.zap.service.engine.model;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class CompleteTask {
+
     private String workerId;
     private Variables variables;
 }

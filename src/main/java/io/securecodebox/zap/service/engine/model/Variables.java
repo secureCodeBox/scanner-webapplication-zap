@@ -34,6 +34,8 @@ public class Variables {
     private ProcessVariable passwordFieldId;
     @JsonProperty("ZAP_TARGET_URL")
     private ProcessVariable targetUrl;
+    @JsonProperty("PROCESS_TARGETS")
+    private ProcessVariable processTargets;
     @JsonProperty("ZAP_USERNAME_FIELD_ID")
     private ProcessVariable usernameFieldId;
     @JsonProperty("ZAP_CSRF_TOKEN_ID")
@@ -90,4 +92,5 @@ public class Variables {
         }
         return result;
     }
+
 }
