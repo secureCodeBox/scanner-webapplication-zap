@@ -46,6 +46,6 @@ public class Finding {
     }
 
     public String getSeverity() {
-        return severity != null ? severity.toUpperCase() : "null";
+        return severity != null ? severity.toUpperCase() : "INFORMATIONAL";
     }
 }

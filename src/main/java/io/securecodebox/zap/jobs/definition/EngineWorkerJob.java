@@ -91,14 +91,25 @@ public class EngineWorkerJob implements JobRunnable {
 
 
     private void performSpiderTask(JobEventPublisher publisher, ZapSpiderTask task) throws ClientApiException, UnsupportedEncodingException {
-        List<Finding> findings = new LinkedList<>();
-        StringBuilder rawResult = new StringBuilder("[");
+        String contextId, userId;
+        List<Finding> resultFindings = new LinkedList<>();
+        StringBuilder rawFindings = new StringBuilder("[");
 
-        //In the Spider Task we want a new context for each target because they are usually unrelated to each other
-        for(Target target : task.getTargets()) {
+        Map<String, List<Target>> targetsGroupedByContext = getContextsForTargets(task.getTargets());
 
-            String contextId, userId;
-            contextId = service.createContext(target.getLocation(), task.getSpiderIncludeRegexes(), task.getSpiderExcludeRegexes());
+        for(String context : targetsGroupedByContext.keySet()) {
+
+            //In the scanner task we want one context for all targets because they are usually related
+            Target t = targetsGroupedByContext.get(context).get(0);
+            String contextUrl;
+            try {
+                contextUrl = new URI(t.getLocation(), false).getScheme() + "://" + context;
+            }
+            catch (URIException e){
+                //not really possible
+                contextUrl = "http://" + context;
+            }
+            contextId = service.createContext(contextUrl, task.getSpiderIncludeRegexes(), task.getSpiderExcludeRegexes());
             if (task.getAuthentication()) {
                 userId = service.configureAuthentication(contextId, task.getLoginSite(), task.getUsernameFieldId(), task.getPasswordFieldId(), task.getLoginUser(), task.getLoginPassword(), "", task.getLoggedInIndicator(), task.getLoggedOutIndicator(), task.getCsrfTokenId());
             } else {
@@ -106,20 +117,25 @@ public class EngineWorkerJob implements JobRunnable {
                 userId = "-1";
             }
 
-            String scanId = (String) service.startSpiderAsUser(target.getLocation(), task.getSpiderApiSpecUrl(), task.getSpiderMaxDepth(), contextId, userId);
+            for (Target target : targetsGroupedByContext.get(context)) {
+                String scanId = (String) service.startSpiderAsUser(target.getLocation(),task.getSpiderApiSpecUrl(),
+                        task.getSpiderMaxDepth(), contextId, userId);
 
-            String result = service.retrieveSpiderResult(scanId);
-
-            if (result != null) {
-                findings.addAll(taskService.createFindings(result));
-                rawResult.append(",").append(result);
-            } else {
-                publisher.warn("Skipped task completion due to a missing ZAP scan result.");
+                String result = service.retrieveSpiderResult(scanId);
+                if (!"{}".equals(result)) {  // Scanner didn't fail?
+                    resultFindings.addAll(taskService.createFindings(result));
+                    rawFindings.append(result).append(",");
+                } else {
+                    publisher.warn("Skipped target processing due to a missing ZAP scan result.");
+                }
             }
         }
-        rawResult.append("]");
-        CompleteTask completedTask = taskService.completeTask(task, findings, rawResult.toString());
-        publisher.info("Completed spider task: " + completedTask);
+
+        rawFindings.deleteCharAt(rawFindings.lastIndexOf(","));
+        rawFindings.append("]");
+        CompleteTask completedTask = taskService.completeTask(task, resultFindings, rawFindings.toString());
+        publisher.info("Completed scanner task: " + completedTask);
+
         service.clearSession();
     }
 
@@ -128,12 +144,21 @@ public class EngineWorkerJob implements JobRunnable {
         List<Finding> resultFindings = new LinkedList<>();
         StringBuilder rawFindings = new StringBuilder("[");
 
-        Map<String, Set<Target>> targetsGroupedByContext = getContextsForTargets(task.getTargets());
+        Map<String, List<Target>> targetsGroupedByContext = getContextsForTargets(task.getTargets());
 
         for(String context : targetsGroupedByContext.keySet()) {
 
-            //In the scanner task we want one context for all targets because they are usually related
-            contextId = service.createContext(task.getTargetUrl(), task.getScannerIncludeRegexes(), task.getScannerExcludeRegexes());
+            //In the scanner task we want one context for many targets because they are usually related
+            Target t = targetsGroupedByContext.get(context).get(0);
+            String contextUrl;
+            try {
+                contextUrl = new URI(t.getLocation(), false).getScheme() + "://" + context;
+            }
+            catch (URIException e){
+                //not really possible
+                contextUrl = "http://" + context;
+            }
+            contextId = service.createContext(contextUrl, task.getScannerIncludeRegexes(), task.getScannerExcludeRegexes());
             if (task.getAuthentication()) {
                 userId = service.configureAuthentication(contextId, task.getLoginSite(), task.getUsernameFieldId(), task.getPasswordFieldId(), task.getLoginUser(), task.getLoginPassword(), "", task.getLoggedInIndicator(), task.getLoggedOutIndicator(), task.getCsrfTokenId());
             } else {
@@ -148,13 +173,14 @@ public class EngineWorkerJob implements JobRunnable {
                 String result = service.retrieveScannerResult(scanId, target.getLocation());
                 if (!"{}".equals(result)) {  // Scanner didn't fail?
                     resultFindings.addAll(taskService.createFindings(result));
-                    rawFindings.append(",").append(result);
+                    rawFindings.append(result).append(",");
                 } else {
                     publisher.warn("Skipped target processing due to a missing ZAP scan result.");
                 }
             }
         }
 
+        rawFindings.deleteCharAt(rawFindings.lastIndexOf(","));
         rawFindings.append("]");
         CompleteTask completedTask = taskService.completeTask(task, resultFindings, rawFindings.toString());
         publisher.info("Completed scanner task: " + completedTask);
@@ -162,7 +188,7 @@ public class EngineWorkerJob implements JobRunnable {
         service.clearSession();
     }
 
-    private Map<String, Set<Target>> getContextsForTargets(List<Target> targets){
+    private Map<String, List<Target>> getContextsForTargets(List<Target> targets){
 
         Function<Target, URI> makeUri = t -> {
             try {
@@ -174,13 +200,13 @@ public class EngineWorkerJob implements JobRunnable {
 
         Function<Target, String> getHost = u -> {
             try {
-                return makeUri.apply(u).getHost();
+                return makeUri.apply(u).getAuthority();
             } catch (URIException ignored) {
                 return null;
             }
         };
 
         return targets.stream()
-                .collect(Collectors.groupingBy(getHost, Collectors.toSet()));
+                .collect(Collectors.groupingBy(getHost, Collectors.toList()));
     }
 }

@@ -126,28 +126,16 @@ public class ZapTaskService extends TaskService {
 
     public List<Finding> createFindings(String zapResult) {
 
-        JSONParser jsonParser = new JSONParser();
-        final List<Finding> scanResults = new ArrayList<>();
+        ObjectMapper objectMapper = new ObjectMapper();
         try {
-            JSONArray jsonResultFindingArray = (JSONArray) jsonParser.parse(zapResult);
-            jsonResultFindingArray.forEach(obj -> {
-
-                ObjectMapper objectMapper = new ObjectMapper();
-                try {
-                    Finding f = objectMapper.readValue(((JSONObject) obj).toJSONString(), Finding.class);
-                    scanResults.add(f);
-                }
-                catch (IOException e){
-                    //should not occur, if it does, ignore the finding
-                    e.printStackTrace();
-                }
-            });
+            final List<Finding> scanResults = objectMapper.readValue(zapResult, objectMapper.getTypeFactory()
+                    .constructCollectionType(List.class, Finding.class));
+            return scanResults;
         }
-        catch (ParseException e){
-            //should not occur, if it does, ignore
-            e.printStackTrace();
+        catch (IOException e) {
+            log.error("Cannot construct findings due to reason: {}", e);
         }
-        return scanResults;
+        return new LinkedList<>();
     }
 
 
