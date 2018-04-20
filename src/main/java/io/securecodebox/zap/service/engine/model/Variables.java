@@ -77,7 +77,10 @@ public class Variables {
     private ProcessVariable scannerTargetUrl;
 
 
-    public static List<String> getVariablesAsStringArray() {
+    /**
+     * @return Names of the defined variables
+     */
+    public static List<String> getNames() {
         List<String> result = new LinkedList<>();
         for (Field field : Variables.class.getDeclaredFields()) {
             if (field.getAnnotationsByType(JsonProperty.class).length == 0) {

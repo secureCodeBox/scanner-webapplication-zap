@@ -21,8 +21,7 @@ public class SpiderResult {
     private String cookies;
 
 
-    public SpiderResult() {
-    }
+    public SpiderResult() {}
 
     /**
      * @param response {@code ApiResponseSet} returned from the related ZAP API call

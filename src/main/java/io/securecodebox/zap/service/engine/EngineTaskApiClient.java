@@ -77,10 +77,6 @@ public class EngineTaskApiClient {
     }
 
     ExternalTask[] getTasksByTopic(ZapTopic topicName) {
-        return getTasksByTopic(topicName, false);
-    }
-
-    private ExternalTask[] getTasksByTopic(ZapTopic topicName, boolean includeLockedTasks) {
         String url = config.getProcessEngineApiUrl() + "?topicName=" + topicName;
         log.debug("Call getTasksByTopic() via {}", url);
 
@@ -93,13 +89,6 @@ public class EngineTaskApiClient {
     }
 
     int getTaskCountByTopic(ZapTopic topicName) {
-        return getTaskCountByTopic(topicName, false);
-    }
-
-    /**
-     * @param includeLockedTasks Ensure to include locked tasks also or not.
-     */
-    private int getTaskCountByTopic(ZapTopic topicName, boolean includeLockedTasks) {
         String url = config.getProcessEngineApiUrl() + "/count?topicName=" + topicName;
         log.debug("Call getTaskCountByTopic() via {}", url);
 
@@ -136,27 +125,27 @@ public class EngineTaskApiClient {
         log.info("Post completeTask({}) via {}", taskId, url);
         log.info("Trying to complete the CompleteTask: {}", completeTask);
 
-        ResponseEntity<String> responseCompleteTasks = restTemplate.postForEntity(url, completeTask, String.class);
+        ResponseEntity<String> completeTasks = restTemplate.postForEntity(url, completeTask, String.class);
         log.info(String.format("Completed the task: %s as workerId: %s", taskId, completeTask.getWorkerId()));
 
-        HttpStatus statusCode = responseCompleteTasks.getStatusCode();
+        HttpStatus statusCode = completeTasks.getStatusCode();
 
         if (statusCode.is2xxSuccessful()) {
             log.info(String.format("Successful completed the task: %s as workerId: %s", taskId, completeTask.getWorkerId()));
         } else {
-            log.error(String.format("Couldn't completed the task: %s, the return code is: %s with result: %s", taskId, statusCode, responseCompleteTasks.getBody()));
+            log.error(String.format("Couldn't completed the task: %s, the return code is: %s with result: %s", taskId, statusCode, completeTasks.getBody()));
         }
     }
 
 
     private static Map<String, Object> jsonStringToMap(String json) {
         ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> map = new HashMap<>();
+        Map<String, Object> map = new HashMap<>(16);
 
         try {
             map = mapper.readValue(json, new TypeReference<Map<String, String>>() {});
         } catch (IOException e) {
-            log.error("Couldnt parse object to map", e);
+            log.error("Couldn't parse object to map", e);
         }
         return map;
     }

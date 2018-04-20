@@ -18,10 +18,12 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.zaproxy.zap.spider.SpiderTask;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 
 import static java.util.Collections.singletonMap;
 
@@ -30,7 +32,6 @@ import static java.util.Collections.singletonMap;
 @Slf4j
 @ToString
 public class ZapTaskService extends TaskService {
-
     @Autowired
     protected ZapConfiguration config;
 
@@ -47,7 +48,7 @@ public class ZapTaskService extends TaskService {
      * Fetch and lock scanner tasks with the given maximum count.
      */
     public ZapScannerTask[] fetchAndLockScannerTasks(int maxTasks, ZapTopic zapTopic) {
-        FetchTasks fetchTask = createZapFetchTasks(maxTasks, zapTopic, Variables.getVariablesAsStringArray());
+        FetchTasks fetchTask = createZapFetchTasks(maxTasks, zapTopic, Variables.getNames());
         return taskApiClient.fetchAndLockTasks(fetchTask, ZapScannerTask[].class);
     }
 
@@ -55,7 +56,7 @@ public class ZapTaskService extends TaskService {
      * Fetch and lock spider tasks with the given maximum count.
      */
     public ZapSpiderTask[] fetchAndLockSpiderTasks(int maxTasks, ZapTopic zapTopic) {
-        FetchTasks fetchTask = createZapFetchTasks(maxTasks, zapTopic, Variables.getVariablesAsStringArray());
+        FetchTasks fetchTask = createZapFetchTasks(maxTasks, zapTopic, Variables.getNames());
         return taskApiClient.fetchAndLockTasks(fetchTask, ZapSpiderTask[].class);
     }
 
@@ -81,16 +82,14 @@ public class ZapTaskService extends TaskService {
     }
 
     private CompleteTask createCompleteTask(ExternalTask zapTask, String zapResult) {
-
         List<Finding> findings = createFindings(zapResult);
+        log.info("Created Findings: {}", findings);
 
-        log.info("Created Findings: " + findings);
         ObjectMapper objectMapper = new ObjectMapper();
         String findingsAsJson;
         try {
             findingsAsJson = objectMapper.writeValueAsString(objectMapper.writeValueAsString(findings));
-        }
-        catch (JsonProcessingException e){
+        } catch (JsonProcessingException e) {
             log.error(e.getMessage());
             findingsAsJson = "";
         }
@@ -103,14 +102,14 @@ public class ZapTaskService extends TaskService {
         valueInfo.put("valueInfo", new JSONObject(valueInfoContent));
 
         //todo: Remove the instanceof checks when spider and scanner have the same data model
-        if(zapTask instanceof ZapSpiderTask) {
+        if (zapTask instanceof ZapSpiderTask) {
             vars.setLastServiceMessage(new ProcessVariable("String", "ZAP spider task finished :-)", null));
             vars.setSpiderType(new ProcessVariable("String", config.getSpiderType(), null));
             vars.setSpiderMicroserviceId(new ProcessVariable("String", config.getAppId(), null));
             vars.setSpiderResult(new ProcessVariable("Object", findingsAsJson, new JSONObject(valueInfoContent)));
             vars.setSpiderRawResult(new ProcessVariable("Object", zapResult, new JSONObject(valueInfoContent)));
         }
-        if(zapTask instanceof ZapScannerTask){
+        if (zapTask instanceof ZapScannerTask) {
             vars.setLastServiceMessage(new ProcessVariable("String", "ZAP scanner task finished :-)", null));
             vars.setScannerType(new ProcessVariable("String", config.getScannerType(), null));
             vars.setScannerMicroserviceId(new ProcessVariable("String", config.getAppId(), null));
@@ -121,34 +120,22 @@ public class ZapTaskService extends TaskService {
         CompleteTask result = new CompleteTask();
         result.setWorkerId(zapTask.getWorkerId());
 
-        log.info("########################################################Task WorkerId: " + zapTask.getWorkerId() + "#################################################");
+        log.info("######################################################## Task WorkerId: {} #################################################", zapTask.getWorkerId());
         result.setVariables(vars);
         return result;
     }
 
-    private List<Finding> createFindings(String zapResult) {
-
-        JSONParser jsonParser = new JSONParser();
-        final List<Finding> scanResults = new ArrayList<>();
+    private static List<Finding> createFindings(String zapResult) {
+        List<Finding> scanResults = new ArrayList<>();
         try {
-            JSONArray jsonResultFindingArray = (JSONArray) jsonParser.parse(zapResult);
-            jsonResultFindingArray.forEach(obj -> {
-
+            ((JSONArray) new JSONParser().parse(zapResult)).forEach(obj -> {
                 ObjectMapper objectMapper = new ObjectMapper();
                 try {
                     Finding f = objectMapper.readValue(((JSONObject) obj).toJSONString(), Finding.class);
                     scanResults.add(f);
-                }
-                catch (IOException e){
-                    //should not occur, if it does, ignore the finding
-                    e.printStackTrace();
-                }
+                } catch (IOException ignored) {}  // should not occur, if it does, ignore the finding
             });
-        }
-        catch (ParseException e){
-            //should not occur, if it does, ignore
-            e.printStackTrace();
-        }
+        } catch (ParseException ignored) {}  // should not occur, if it does, ignore
         return scanResults;
     }
 
