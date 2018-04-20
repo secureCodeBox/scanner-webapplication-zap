@@ -138,31 +138,25 @@ public class ZapService implements StatusDetailIndicator {
     }
 
 
-    public void recallTarget(List<Target> targets) {
+    public void recallTarget(Target request) {
+        Collection<Cookie> cookies = enforceSessionCookie(request.getLocation());
 
-        if (!targets.isEmpty()) {
-            Collection<Cookie> cookies = enforceSessionCookie(targets.get(0).getLocation());
-
-            log.debug("Trying to recall #{} requests.", targets.size());
-            try (AsyncHttpClient client = new AsyncHttpClient()) {  // https://asynchttpclient.github.io/async-http-client/proxy.html
-                for (Target request : targets) {
-                    if(request.getAttributes().keySet().contains("method")) {
-                        switch ((String) request.getAttributes().get("method")) {
-                            case "GET":
-                                callAsyncGetRequest(client, request.getLocation(), cookies);
-                                break;
-                            case "POST":
-                                callAsyncPostRequest(client, request.getLocation(), cookies);
-                                break;
-                            default:
-                                log.debug("Nothing to do, method: {} URL:{}", request.getAttributes().get("method"), request.getLocation());
-                                break;
-                        }
-                    }
+        try (AsyncHttpClient client = new AsyncHttpClient()) {  // https://asynchttpclient.github.io/async-http-client/proxy.html
+            if(request.getAttributes().keySet().contains("method")) {
+                switch ((String) request.getAttributes().get("method")) {
+                    case "GET":
+                        callAsyncGetRequest(client, request.getLocation(), cookies);
+                        break;
+                    case "POST":
+                        callAsyncPostRequest(client, request.getLocation(), cookies);
+                        break;
+                    default:
+                        log.debug("Nothing to do, method: {} URL:{}", request.getAttributes().get("method"), request.getLocation());
+                        break;
                 }
-            } catch (InterruptedException | ExecutionException e) {
-                log.error("Error", e);
             }
+        } catch (InterruptedException | ExecutionException e) {
+            log.error("Error", e);
         }
     }
 
