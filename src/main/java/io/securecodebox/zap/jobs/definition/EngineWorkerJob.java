@@ -6,6 +6,8 @@ import de.otto.edison.jobs.service.JobRunnable;
 import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.ZapTaskService;
 import io.securecodebox.zap.service.engine.model.CompleteTask;
+import io.securecodebox.zap.service.engine.model.Finding;
+import io.securecodebox.zap.service.engine.model.Target;
 import io.securecodebox.zap.service.engine.model.zap.ZapScannerTask;
 import io.securecodebox.zap.service.engine.model.zap.ZapSpiderTask;
 import io.securecodebox.zap.service.engine.model.zap.ZapTopic;
@@ -17,6 +19,8 @@ import org.springframework.stereotype.Component;
 import org.zaproxy.clientapi.core.ClientApiException;
 
 import java.io.UnsupportedEncodingException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Optional;
 
 import static de.otto.edison.jobs.definition.DefaultJobDefinition.retryableCronJobDefinition;
@@ -29,17 +33,12 @@ import static java.time.Duration.ofMinutes;
 public class EngineWorkerJob implements JobRunnable {
     public static final String JOB_TYPE = "engine/worker/owasp/zap";
 
-    private final ZapConfiguration config;
-    private final ZapTaskService taskService;
-    private final ZapService service;
-
-
     @Autowired
-    public EngineWorkerJob(ZapConfiguration config, ZapTaskService taskService, ZapService service) {
-        this.config = config;
-        this.taskService = taskService;
-        this.service = service;
-    }
+    private ZapConfiguration config;
+    @Autowired
+    private ZapTaskService taskService;
+    @Autowired
+    private ZapService service;
 
 
     @Override
@@ -91,6 +90,9 @@ public class EngineWorkerJob implements JobRunnable {
 
     private void performSpiderTask(JobEventPublisher publisher, ZapSpiderTask task) throws ClientApiException, UnsupportedEncodingException {
         String contextId, userId;
+        List<Finding> resultFindings = new LinkedList<>();
+        StringBuilder rawFindings = new StringBuilder("[");
+
         contextId = service.createContext(task.getTargetUrl(), task.getSpiderIncludeRegexes(), task.getSpiderExcludeRegexes());
         if (task.getAuthentication()) {
             userId = service.configureAuthentication(contextId, task.getLoginSite(), task.getUsernameFieldId(), task.getPasswordFieldId(), task.getLoginUser(), task.getLoginPassword(), "", task.getLoggedInIndicator(), task.getLoggedOutIndicator(), task.getCsrfTokenId());
@@ -99,21 +101,35 @@ public class EngineWorkerJob implements JobRunnable {
             userId = "-1";
         }
 
-        String scanId = (String) service.startSpiderAsUser(task.getTargetUrl(), task.getSpiderApiSpecUrl(), task.getSpiderMaxDepth(), contextId, userId);
+        for (Target target : task.getTargets()) {
 
-        String result = service.retrieveSpiderResult(scanId);
-        if (result != null) {
-            CompleteTask completedTask = taskService.completeTask(task, result);
-            publisher.info("Completed spider task: " + completedTask);
-        } else {
-            publisher.warn("Skipped task completion due to a missing ZAP scan result.");
+            log.info("Start Spider with URL: " + target.getLocation());
+            String scanId = (String) service.startSpiderAsUser(target.getLocation(),task.getSpiderApiSpecUrl(),
+                    task.getSpiderMaxDepth(), contextId, userId);
+
+            String result = service.retrieveSpiderResult(scanId);
+            if (!"{}".equals(result)) {  // Scanner didn't fail?
+                resultFindings.addAll(taskService.createFindings(result));
+                rawFindings.append(result).append(",");
+            } else {
+                publisher.warn("Skipped target processing due to a missing ZAP scan result.");
+            }
         }
+
+        rawFindings.deleteCharAt(rawFindings.lastIndexOf(","));
+        rawFindings.append("]");
+        CompleteTask completedTask = taskService.completeTask(task, resultFindings, rawFindings.toString());
+        publisher.info("Completed scanner task: " + completedTask);
 
         service.clearSession();
     }
 
     private void performScannerTask(JobEventPublisher publisher, ZapScannerTask task) throws ClientApiException, UnsupportedEncodingException {
+
         String contextId, userId;
+        List<Finding> resultFindings = new LinkedList<>();
+        StringBuilder rawFindings = new StringBuilder("[");
+
         contextId = service.createContext(task.getTargetUrl(), task.getScannerIncludeRegexes(), task.getScannerExcludeRegexes());
         if (task.getAuthentication()) {
             userId = service.configureAuthentication(contextId, task.getLoginSite(), task.getUsernameFieldId(), task.getPasswordFieldId(), task.getLoginUser(), task.getLoginPassword(), "", task.getLoggedInIndicator(), task.getLoggedOutIndicator(), task.getCsrfTokenId());
@@ -122,16 +138,25 @@ public class EngineWorkerJob implements JobRunnable {
             userId = "-1";
         }
 
-        service.recallSpiderToScanner(task.getSpiderResult());
-        String scanId = (String) service.startScannerAsUser(task.getTargetUrl(), contextId, userId);
+        for (Target target : task.getTargets()) {
 
-        String result = service.retrieveScannerResult(scanId, task.getTargetUrl());
-        if ("{}".equals(result)) {  // Scanner failed?
-            publisher.warn("Skipped task completion due to a missing ZAP scan result.");
-        } else {
-            CompleteTask completedTask = taskService.completeTask(task, result);
-            publisher.info("Completed scanner task: " + completedTask);
+            log.info("Start Scanner with URL: " + target.getLocation());
+            service.recallTarget(target);
+            String scanId = (String) service.startScannerAsUser(target.getLocation(), contextId, userId);
+
+            String result = service.retrieveScannerResult(scanId, target.getLocation());
+            if (!"{}".equals(result)) {  // Scanner didn't fail?
+                resultFindings.addAll(taskService.createFindings(result));
+                rawFindings.append(result).append(",");
+            } else {
+                publisher.warn("Skipped target processing due to a missing ZAP scan result.");
+            }
         }
+
+        rawFindings.deleteCharAt(rawFindings.lastIndexOf(","));
+        rawFindings.append("]");
+        CompleteTask completedTask = taskService.completeTask(task, resultFindings, rawFindings.toString());
+        publisher.info("Completed scanner task: " + completedTask);
 
         service.clearSession();
     }

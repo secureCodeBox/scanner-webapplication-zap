@@ -12,6 +12,7 @@ import lombok.Data;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class CompleteTask {
+
     private String workerId;
     private Variables variables;
 }
