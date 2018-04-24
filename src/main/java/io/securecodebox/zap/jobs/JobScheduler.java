@@ -45,9 +45,7 @@ public class JobScheduler {
         if (ZapFeature.DISABLE_TRIGGER_ALL_JOBS.isActive()) {
             log.info("The Job trigger time is inactive: {}", now);
         } else {
-            int spiderTasksCount = taskService.getZapTaskCountByTopic(ZapTopic.ZAP_SPIDER);
-            int scannerTasksCount = taskService.getZapTaskCountByTopic(ZapTopic.ZAP_SCANNER);
-            if ((spiderTasksCount + scannerTasksCount) > 0) {
+            if(taskService.getTask(ZapTopic.ZAP_SPIDER) != null || taskService.getTask(ZapTopic.ZAP_SCANNER) != null){
                 log.info("The Job trigger time is active: {}", now);
                 jobService.startAsyncJob(EngineWorkerJob.JOB_TYPE);
             } else {

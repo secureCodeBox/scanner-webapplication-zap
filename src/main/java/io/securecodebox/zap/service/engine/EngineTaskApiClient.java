@@ -6,6 +6,7 @@ import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.model.CompleteTask;
 import io.securecodebox.zap.service.engine.model.ExternalTask;
 import io.securecodebox.zap.service.engine.model.FetchTasks;
+import io.securecodebox.zap.service.engine.model.zap.ZapTask;
 import io.securecodebox.zap.service.engine.model.zap.ZapTopic;
 import io.securecodebox.zap.util.BasicAuthRestTemplate;
 import lombok.ToString;
@@ -45,6 +46,7 @@ public class EngineTaskApiClient {
 
     @PostConstruct
     public void init() {
+
         log.info("initiating REST template for user {}", config.getCamundaUsername());
 
         restTemplate = (config.getCamundaUsername() != null && config.getCamundaPassword() != null)
@@ -107,17 +109,17 @@ public class EngineTaskApiClient {
         }
     }
 
-    <T> T fetchAndLockTasks(FetchTasks fetchTask, Class<T> resultTaskType) {
-        String url = config.getProcessEngineApiUrl() + "/fetchAndLock";
-        log.info(String.format("Trying to fetch %s open worker tasks for the topics: %s via %s", fetchTask.getMaxTasks(), fetchTask.getTopics(), url));
+    ZapTask fetchAndLockTask(ZapTopic zapTopic, String jobId) {
+        String url = config.getProcessEngineApiUrl() + "/box/jobs/lock/" + zapTopic.getName() + "/" + jobId;
+        log.info(String.format("Trying to fetch task for the topic: %s via %s", zapTopic, url));
 
-        ResponseEntity<T> tasks = restTemplate.postForEntity(url, fetchTask, resultTaskType);
-        if (tasks.getStatusCode().is2xxSuccessful() && tasks.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_JSON)) {
+        ResponseEntity<ZapTask> task = restTemplate.getForEntity(url, ZapTask.class);
+        if (task.getBody() != null && task.getStatusCode().is2xxSuccessful() && task.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_JSON)) {
             log.debug("HTTP Response Success");
         } else {
-            log.debug("Currently nothing todo, no tasks found!");
+            log.debug("Currently nothing todo, no task found!");
         }
-        return tasks.getBody();
+        return task.getBody();
     }
 
     void completeTask(String taskId, CompleteTask completeTask) {
