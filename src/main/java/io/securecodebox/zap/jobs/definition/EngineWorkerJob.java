@@ -105,6 +105,7 @@ public class EngineWorkerJob implements JobRunnable {
 
         for (Target target : task.getTargets()) {
 
+            log.info("Start Spider with URL: " + target.getLocation());
             String scanId = (String) service.startSpiderAsUser(target.getLocation(),task.getSpiderApiSpecUrl(),
                     task.getSpiderMaxDepth(), contextId, userId);
 
@@ -141,8 +142,8 @@ public class EngineWorkerJob implements JobRunnable {
 
         for (Target target : task.getTargets()) {
 
+            log.info("Start Scanner with URL: " + target.getLocation());
             service.recallTarget(target);
-
             String scanId = (String) service.startScannerAsUser(target.getLocation(), contextId, userId);
 
             String result = service.retrieveScannerResult(scanId, target.getLocation());
