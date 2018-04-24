@@ -116,7 +116,10 @@ public class EngineWorkerJob implements JobRunnable {
             }
         }
 
-        rawFindings.deleteCharAt(rawFindings.lastIndexOf(","));
+        int lastIndex = rawFindings.lastIndexOf(",");
+        if(lastIndex != -1) {
+            rawFindings.deleteCharAt(lastIndex);
+        }
         rawFindings.append("]");
         CompleteTask completedTask = taskService.completeTask(task, resultFindings, rawFindings.toString());
         publisher.info("Completed scanner task: " + completedTask);
@@ -153,7 +156,10 @@ public class EngineWorkerJob implements JobRunnable {
             }
         }
 
-        rawFindings.deleteCharAt(rawFindings.lastIndexOf(","));
+        int lastIndex = rawFindings.lastIndexOf(",");
+        if(lastIndex != -1) {
+            rawFindings.deleteCharAt(lastIndex);
+        }
         rawFindings.append("]");
         CompleteTask completedTask = taskService.completeTask(task, resultFindings, rawFindings.toString());
         publisher.info("Completed scanner task: " + completedTask);
