@@ -47,7 +47,7 @@ public class ZapTaskService extends TaskService {
      * Fetch and lock scanner tasks with the given maximum count.
      */
     public ZapScannerTask[] fetchAndLockScannerTasks(int maxTasks, ZapTopic zapTopic) {
-        FetchTasks fetchTask = createZapFetchTasks(maxTasks, zapTopic, Variables.getVariablesAsStringArray());
+        FetchTasks fetchTask = createZapFetchTasks(maxTasks, zapTopic, Variables.getNames());
         return taskApiClient.fetchAndLockTasks(fetchTask, ZapScannerTask[].class);
     }
 
@@ -55,7 +55,7 @@ public class ZapTaskService extends TaskService {
      * Fetch and lock spider tasks with the given maximum count.
      */
     public ZapSpiderTask[] fetchAndLockSpiderTasks(int maxTasks, ZapTopic zapTopic) {
-        FetchTasks fetchTask = createZapFetchTasks(maxTasks, zapTopic, Variables.getVariablesAsStringArray());
+        FetchTasks fetchTask = createZapFetchTasks(maxTasks, zapTopic, Variables.getNames());
         return taskApiClient.fetchAndLockTasks(fetchTask, ZapSpiderTask[].class);
     }
 
