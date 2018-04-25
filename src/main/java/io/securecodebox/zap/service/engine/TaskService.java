@@ -1,7 +1,6 @@
 package io.securecodebox.zap.service.engine;
 
 import de.otto.edison.status.indicator.StatusDetailIndicator;
-import io.securecodebox.zap.service.engine.model.ExternalTask;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,9 +16,4 @@ import org.springframework.stereotype.Service;
 public abstract class TaskService implements StatusDetailIndicator {
     @Autowired
     protected EngineTaskApiClient taskApiClient;
-
-
-    public ExternalTask getTask(int taskId) {
-        return taskApiClient.getTask(taskId);
-    }
 }

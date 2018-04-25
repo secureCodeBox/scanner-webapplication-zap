@@ -1,25 +1,17 @@
 package io.securecodebox.zap.service.engine;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.otto.edison.status.domain.Status;
 import de.otto.edison.status.domain.StatusDetail;
 import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.model.*;
-import io.securecodebox.zap.service.engine.model.zap.ZapScannerTask;
-import io.securecodebox.zap.service.engine.model.zap.ZapSpiderTask;
 import io.securecodebox.zap.service.engine.model.zap.ZapTask;
 import io.securecodebox.zap.service.engine.model.zap.ZapTopic;
 import io.securecodebox.zap.togglz.ZapFeature;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.zaproxy.zap.spider.SpiderTask;
 
 import java.io.IOException;
 import java.util.*;
@@ -35,100 +27,20 @@ public class ZapTaskService extends TaskService {
     @Autowired
     protected ZapConfiguration config;
 
-
-    public ExternalTask[] getZapTasksByTopic(ZapTopic topicName) {
-        return taskApiClient.getTasksByTopic(topicName);
-    }
-
     public int getZapTaskCountByTopic(ZapTopic topicName) {
         return taskApiClient.getTaskCountByTopic(topicName);
-    }
-
-    /**
-     * Fetch and lock scanner tasks with the given maximum count.
-     */
-    public ZapScannerTask[] fetchAndLockScannerTasks(int maxTasks, ZapTopic zapTopic) {
-//        FetchTasks fetchTask = createZapFetchTasks(maxTasks, zapTopic, Variables.getNames());
-//        return taskApiClient.fetchAndLockTasks(fetchTask, ZapScannerTask[].class);
-        return null;
-    }
-
-    /**
-     * Fetch and lock spider tasks with the given maximum count.
-     */
-    public ZapSpiderTask[] fetchAndLockSpiderTasks(int maxTasks, ZapTopic zapTopic) {
-//        FetchTasks fetchTask = createZapFetchTasks(maxTasks, zapTopic, Variables.getNames());
-//        return taskApiClient.fetchAndLockTasks(fetchTask, ZapSpiderTask[].class);
-        return null;
     }
 
     public ZapTask getTask(ZapTopic zapTopic){
         return taskApiClient.fetchAndLockTask(zapTopic, config.getAppId());
     }
 
-    private FetchTasks createZapFetchTasks(int maxTasks, ZapTopic zapTopic, List<String> variablesToFetch) {
-        TaskTopic topic = new TaskTopic();
-        topic.setTopicName(zapTopic.getName());
-        topic.setLockDuration(config.getTaskLockDurationInMs());
-        topic.setVariables(variablesToFetch);
-
-        FetchTasks result = new FetchTasks();
-        result.setWorkerId(config.getAppId());
-        result.setMaxTasks(maxTasks);
-        result.setTopics(Collections.singletonList(topic));
-        return result;
-    }
-
-    public CompleteTask completeTask(ExternalTask fetchedTask, List<Finding> findings, String rawResult) {
-        CompleteTask task = createCompleteTask(fetchedTask, findings, rawResult);
+    public CompleteTask completeTask(ZapTask zapTask, List<Finding> findings, String rawResult) {
+        CompleteTask task = new CompleteTask(config.getAppId(), zapTask.getJobId(), config.getScannerType(), findings, rawResult);
         if (!ZapFeature.DISABLE_COMPLETE_ZAP_PROCESS_TASKS.isActive()) {
-            taskApiClient.completeTask(fetchedTask.getId(), task);
+            taskApiClient.completeTask(task);
         }
         return task;
-    }
-
-    private CompleteTask createCompleteTask(ExternalTask zapTask, List<Finding> findings, String rawResult) {
-
-        ObjectMapper objectMapper = new ObjectMapper();
-        String findingsAsJson;
-        try {
-            findingsAsJson = objectMapper.writeValueAsString(objectMapper.writeValueAsString(findings));
-            rawResult = objectMapper.writeValueAsString(rawResult);
-        }
-        catch (JsonProcessingException e){
-            log.error(e.getMessage());
-            findingsAsJson = "";
-        }
-
-        Variables vars = new Variables();
-        HashMap<String, String> valueInfoContent = new HashMap<>();
-        valueInfoContent.put("objectTypeName", "java.lang.String");
-        valueInfoContent.put("serializationDataFormat", "application/json");
-        JSONObject valueInfo = new JSONObject();
-        valueInfo.put("valueInfo", new JSONObject(valueInfoContent));
-
-        //todo: Remove the instanceof checks when spider and scanner have the same data model
-//        if(zapTask instanceof ZapSpiderTask) {
-//            vars.setLastServiceMessage(new ProcessVariable("String", "ZAP spider task finished :-)", null));
-//            vars.setSpiderType(new ProcessVariable("String", config.getSpiderType(), null));
-//            vars.setScannerMicroserviceId(new ProcessVariable("String", config.getAppId(), null));
-//            vars.setScannerResult(new ProcessVariable("Object", findingsAsJson, new JSONObject(valueInfoContent)));
-//            vars.setRawScannerResult(new ProcessVariable("Object", rawResult, new JSONObject(valueInfoContent)));
-//        }
-//        if(zapTask instanceof ZapScannerTask){
-            vars.setLastServiceMessage(new ProcessVariable("String", "ZAP scanner task finished :-)", null));
-            vars.setScannerType(new ProcessVariable("String", config.getScannerType(), null));
-            vars.setScannerMicroserviceId(new ProcessVariable("String", config.getAppId(), null));
-            vars.setScannerResult(new ProcessVariable("Object", findingsAsJson, new JSONObject(valueInfoContent)));
-            vars.setRawScannerResult(new ProcessVariable("Object", rawResult, new JSONObject(valueInfoContent)));
-//        }
-
-        CompleteTask result = new CompleteTask();
-        result.setWorkerId(zapTask.getWorkerId());
-
-        log.info("########################################################Task WorkerId: " + zapTask.getWorkerId() + "#################################################");
-        result.setVariables(vars);
-        return result;
     }
 
     public List<Finding> createFindings(String zapResult) {
@@ -147,6 +59,7 @@ public class ZapTaskService extends TaskService {
 
 
     @Override
+    //todo: Do we need this?
     public StatusDetail statusDetail() {
         try {
             int taskCountByTopic = getZapTaskCountByTopic(ZapTopic.ZAP_SCANNER);

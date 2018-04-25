@@ -4,8 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.model.CompleteTask;
-import io.securecodebox.zap.service.engine.model.ExternalTask;
-import io.securecodebox.zap.service.engine.model.FetchTasks;
 import io.securecodebox.zap.service.engine.model.zap.ZapTask;
 import io.securecodebox.zap.service.engine.model.zap.ZapTopic;
 import io.securecodebox.zap.util.BasicAuthRestTemplate;
@@ -58,38 +56,6 @@ public class EngineTaskApiClient {
         log.info("EngineApiClient is using {} as Engine Base URL.", config.getProcessEngineApiUrl());
     }
 
-
-    /**
-     * Retrieves the task object for the given taskId from the Process Engine, based on the REST-API:
-     * <a>https://docs.camunda.org/manual/7.5/reference/rest/external-task/get/</a>.
-     *
-     * @param taskId ID to return the task object for.
-     * @return Task object for the given task ID from the Process Engine.
-     */
-    ExternalTask getTask(int taskId) {
-        String url = config.getProcessEngineApiUrl() + '/' + taskId;
-        log.debug("Call getTask() via {}", url);
-
-        ResponseEntity<ExternalTask> task = restTemplate.getForEntity(url, ExternalTask.class);
-        if (task.getStatusCode().is2xxSuccessful() && task.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_JSON)) {
-            return task.getBody();
-        } else {
-            throw new ResourceAccessException(String.format("Couldn't retrieve the task with ID %s! The Engine Service returned status %s!", taskId, task.getStatusCode()));
-        }
-    }
-
-    ExternalTask[] getTasksByTopic(ZapTopic topicName) {
-        String url = config.getProcessEngineApiUrl() + "?topicName=" + topicName;
-        log.debug("Call getTasksByTopic() via {}", url);
-
-        ResponseEntity<ExternalTask[]> task = restTemplate.getForEntity(url, ExternalTask[].class);
-        if (task.getStatusCode().is2xxSuccessful() && task.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_JSON)) {
-            return task.getBody();
-        } else {
-            throw new ResourceAccessException(String.format("Couldn't retrieve the tasks for topic %s! The Engine Service returned HTTP %s", topicName, task.getStatusCode()));
-        }
-    }
-
     int getTaskCountByTopic(ZapTopic topicName) {
         String url = config.getProcessEngineApiUrl() + "/count?topicName=" + topicName;
         log.debug("Call getTaskCountByTopic() via {}", url);
@@ -113,7 +79,7 @@ public class EngineTaskApiClient {
         String url = config.getProcessEngineApiUrl() + "/box/jobs/lock/" + zapTopic.getName() + "/" + jobId;
         log.info(String.format("Trying to fetch task for the topic: %s via %s", zapTopic, url));
 
-        ResponseEntity<ZapTask> task = restTemplate.getForEntity(url, ZapTask.class);
+        ResponseEntity<ZapTask> task = restTemplate.postForEntity(url, null, ZapTask.class);
         if (task.getBody() != null && task.getStatusCode().is2xxSuccessful() && task.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_JSON)) {
             log.debug("HTTP Response Success");
         } else {
@@ -122,20 +88,20 @@ public class EngineTaskApiClient {
         return task.getBody();
     }
 
-    void completeTask(String taskId, CompleteTask completeTask) {
-        String url = config.getProcessEngineApiUrl() + '/' + taskId + "/complete";
-        log.info("Post completeTask({}) via {}", taskId, url);
-        log.info("Trying to complete the CompleteTask: {}", completeTask);
+    void completeTask(CompleteTask task) {
 
-        ResponseEntity<String> completeTasks = restTemplate.postForEntity(url, completeTask, String.class);
-        log.info(String.format("Completed the task: %s as workerId: %s", taskId, completeTask.getWorkerId()));
+        String url = config.getProcessEngineApiUrl() + "/box/jobs/" + task.getJobId() + "/result";
+        log.info("Post completeTask({}) via {}", task, url);
 
-        HttpStatus statusCode = completeTasks.getStatusCode();
+        ResponseEntity<String> completedTask = restTemplate.postForEntity(url, task, String.class);
+        log.info(String.format("Completed the task: %s", task.getJobId()));
+
+        HttpStatus statusCode = completedTask.getStatusCode();
 
         if (statusCode.is2xxSuccessful()) {
-            log.info(String.format("Successful completed the task: %s as workerId: %s", taskId, completeTask.getWorkerId()));
+            log.info(String.format("Successfully completed the task: %s: ", task.getJobId()));
         } else {
-            log.error(String.format("Couldn't completed the task: %s, the return code is: %s with result: %s", taskId, statusCode, completeTasks.getBody()));
+            log.error(String.format("Couldn't complete the task: %s, the return code is: %s with result: %s", task.getJobId(), statusCode, completedTask.getBody()));
         }
     }
 

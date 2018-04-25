@@ -1,7 +1,10 @@
 package io.securecodebox.zap.service.engine.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+
+import java.util.List;
 
 
 /**
@@ -11,8 +14,13 @@ import lombok.Data;
  */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
+@AllArgsConstructor
 public class CompleteTask {
 
-    private String workerId;
-    private Variables variables;
+    private String scannerId;
+    private String jobId;
+    private String scannerType;
+    private List<Finding> findings;
+    private String rawFindings;
+
 }
