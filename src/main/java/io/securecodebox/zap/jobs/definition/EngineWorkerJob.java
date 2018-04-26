@@ -8,6 +8,7 @@ import io.securecodebox.zap.service.engine.ZapTaskService;
 import io.securecodebox.zap.service.engine.model.CompleteTask;
 import io.securecodebox.zap.service.engine.model.Finding;
 import io.securecodebox.zap.service.engine.model.Target;
+import io.securecodebox.zap.service.engine.model.zap.ZapFields;
 import io.securecodebox.zap.service.engine.model.zap.ZapTask;
 import io.securecodebox.zap.service.engine.model.zap.ZapTopic;
 import io.securecodebox.zap.service.zap.ZapService;
@@ -18,8 +19,9 @@ import org.springframework.stereotype.Component;
 import org.zaproxy.clientapi.core.ClientApiException;
 
 import java.io.UnsupportedEncodingException;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
 
 import static de.otto.edison.jobs.definition.DefaultJobDefinition.retryableCronJobDefinition;
 import static java.time.Duration.ofMinutes;
@@ -83,20 +85,29 @@ public class EngineWorkerJob implements JobRunnable {
         log.info("Starting Task for topic {} with targets: {}", zapTopic, task.getTargets());
 
         for (Target target : task.getTargets()) {
-            String includeRegex = (String) target.getAttributes().get("includeRegex");
-            String excludeRegex = (String) target.getAttributes().get("excludeRegex");
-            Boolean authentication = (Boolean) target.getAttributes().get("ZAP_AUTHENTICATION");
-            authentication = (authentication != null) ? authentication : false;
-            String loginSite = (String) target.getAttributes().get("loginSite");
-            String usernameFieldId = (String) target.getAttributes().get("usernameFieldId");
-            String passwordFieldId = (String) target.getAttributes().get("passwordFieldId");
-            String loginUser = (String) target.getAttributes().get("loginUser");
-            String password = (String) target.getAttributes().get("password");
-            String loggedInIndicator = (String) target.getAttributes().get("loggedInIndicator");
-            String loggedOutIndicator = (String) target.getAttributes().get("loggedOutIndicator");
-            String csrfToken = (String) target.getAttributes().get("csrfToken");
+            String includeRegex;
+            String excludeRegex;
 
-            contextId = service.createContext((String)target.getAttributes().get("ZAP_BASE_URL"), includeRegex, excludeRegex);
+            if(zapTopic == ZapTopic.ZAP_SPIDER){
+                includeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SPIDER_INCLUDE_REGEX.name());
+                excludeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SPIDER_EXCLUDE_REGEX.name());
+            }
+            else {
+                includeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_INCLUDE_REGEX.name());
+                excludeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_EXCLUDE_REGEX.name());
+            }
+            Boolean authentication = (Boolean) target.getAttributes().get(ZapFields.ZAP_AUTHENTICATION.name());
+            authentication = (authentication != null) ? authentication : false;
+            String loginSite = (String) target.getAttributes().get(ZapFields.ZAP_LOGIN_SITE.name());
+            String usernameFieldId = (String) target.getAttributes().get(ZapFields.ZAP_USERNAME_FIELD_ID.name());
+            String passwordFieldId = (String) target.getAttributes().get(ZapFields.ZAP_PW_FIELD_ID.name());
+            String loginUser = (String) target.getAttributes().get(ZapFields.ZAP_LOGIN_USER.name());
+            String password = (String) target.getAttributes().get(ZapFields.ZAP_LOGIN_PW.name());
+            String loggedInIndicator = (String) target.getAttributes().get(ZapFields.ZAP_LOGGED_IN_INDICATOR.name());
+            String loggedOutIndicator = (String) target.getAttributes().get(ZapFields.LOGGED_OUT_INDICATOR.name());
+            String csrfToken = (String) target.getAttributes().get(ZapFields.ZAP_CSRF_TOKEN_ID.name());
+
+            contextId = service.createContext((String)target.getAttributes().get(ZapFields.ZAP_BASE_URL.name()), includeRegex, excludeRegex);
             if (authentication) {
                 userId = service.configureAuthentication(
                         contextId, loginSite,
@@ -111,8 +122,8 @@ public class EngineWorkerJob implements JobRunnable {
 
             String result;
             if(zapTopic == ZapTopic.ZAP_SPIDER) {
-                String spiderApiSpecUrl = (String) target.getAttributes().get("spiderApiSpecUrl");
-                Integer spiderMaxDepth = (Integer) target.getAttributes().get("spiderMaxDepth");
+                String spiderApiSpecUrl = (String) target.getAttributes().get(ZapFields.ZAP_SPIDER_API_SPEC_URL.name());
+                Integer spiderMaxDepth = (Integer) target.getAttributes().get(ZapFields.ZAP_SPIDER_MAX_DEPTH.name());
                 spiderMaxDepth = (spiderMaxDepth != null) ? spiderMaxDepth : 1;
                 log.info("Start Spider with URL: " + target.getLocation());
                 String scanId = (String) service.startSpiderAsUser(target.getLocation(), spiderApiSpecUrl,
@@ -127,7 +138,7 @@ public class EngineWorkerJob implements JobRunnable {
             }
             if (!"{}".equals(result)) {  // Scanner didn't fail?
                 List<Finding> scannerResults = taskService.createFindings(result);
-                scannerResults.forEach(f -> f.getAttributes().put("ZAP_BASE_URL", target.getAttributes().get("ZAP_BASE_URL")));
+                scannerResults.forEach(f -> f.getAttributes().put(ZapFields.ZAP_BASE_URL.name(), target.getAttributes().get(ZapFields.ZAP_BASE_URL.name())));
                 resultFindings.addAll(scannerResults);
                 rawFindings.append(result).append(",");
 
