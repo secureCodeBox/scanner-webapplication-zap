@@ -82,72 +82,58 @@ public class EngineWorkerJob implements JobRunnable {
 
         log.info("Starting Task for topic {} with targets: {}", zapTopic, task.getTargets());
 
-        Map<String, List<Target>> targetsGroupedByContext = task.getTargets().stream()
-                .filter(target -> target.getAttributes().get("ZAP_BASE_URL") != null)
-                .collect(Collectors.groupingBy(target -> (String)target.getAttributes().get("ZAP_BASE_URL")));
+        for (Target target : task.getTargets()) {
+            String includeRegex = (String) target.getAttributes().get("includeRegex");
+            String excludeRegex = (String) target.getAttributes().get("excludeRegex");
+            Boolean authentication = (Boolean) target.getAttributes().get("ZAP_AUTHENTICATION");
+            authentication = (authentication != null) ? authentication : false;
+            String loginSite = (String) target.getAttributes().get("loginSite");
+            String usernameFieldId = (String) target.getAttributes().get("usernameFieldId");
+            String passwordFieldId = (String) target.getAttributes().get("passwordFieldId");
+            String loginUser = (String) target.getAttributes().get("loginUser");
+            String password = (String) target.getAttributes().get("password");
+            String loggedInIndicator = (String) target.getAttributes().get("loggedInIndicator");
+            String loggedOutIndicator = (String) target.getAttributes().get("loggedOutIndicator");
+            String csrfToken = (String) target.getAttributes().get("csrfToken");
 
-        log.info("Grouped Urls by Base Url: {}", targetsGroupedByContext);
+            contextId = service.createContext((String)target.getAttributes().get("ZAP_BASE_URL"), includeRegex, excludeRegex);
+            if (authentication) {
+                userId = service.configureAuthentication(
+                        contextId, loginSite,
+                        usernameFieldId, passwordFieldId,
+                        loginUser, password,
+                        "", loggedInIndicator,
+                        loggedOutIndicator, csrfToken);
+            } else {
+                contextId = "-1";
+                userId = "-1";
+            }
 
-        for(String context : targetsGroupedByContext.keySet()) {
+            String result;
+            if(zapTopic == ZapTopic.ZAP_SPIDER) {
+                String spiderApiSpecUrl = (String) target.getAttributes().get("spiderApiSpecUrl");
+                Integer spiderMaxDepth = (Integer) target.getAttributes().get("spiderMaxDepth");
+                spiderMaxDepth = (spiderMaxDepth != null) ? spiderMaxDepth : 1;
+                log.info("Start Spider with URL: " + target.getLocation());
+                String scanId = (String) service.startSpiderAsUser(target.getLocation(), spiderApiSpecUrl,
+                        spiderMaxDepth, contextId, userId);
+                result = service.retrieveSpiderResult(scanId);
+            }
+            else {
+                log.info("Start Scanner with URL: " + target.getLocation());
+                service.recallTarget(target);
+                String scanId = (String) service.startScannerAsUser(target.getLocation(), contextId, userId);
+                result = service.retrieveScannerResult(scanId, target.getLocation());
+            }
+            if (!"{}".equals(result)) {  // Scanner didn't fail?
+                List<Finding> scannerResults = taskService.createFindings(result);
+                scannerResults.forEach(f -> f.getAttributes().put("ZAP_BASE_URL", target.getAttributes().get("ZAP_BASE_URL")));
+                resultFindings.addAll(scannerResults);
+                rawFindings.append(result).append(",");
 
-            List<Target> targets = targetsGroupedByContext.get(context);
-            if(targets != null && targets.size() != 0) {
-                String includeRegex = (String) targets.get(0).getAttributes().get("includeRegex");
-                String excludeRegex = (String) targets.get(0).getAttributes().get("excludeRegex");
-                Boolean authentication = (Boolean) targets.get(0).getAttributes().get("ZAP_AUTHENTICATION");
-                authentication = (authentication != null) ? authentication : false;
-                String loginSite = (String) targets.get(0).getAttributes().get("loginSite");
-                String usernameFieldId = (String) targets.get(0).getAttributes().get("usernameFieldId");
-                String passwordFieldId = (String) targets.get(0).getAttributes().get("passwordFieldId");
-                String loginUser = (String) targets.get(0).getAttributes().get("loginUser");
-                String password = (String) targets.get(0).getAttributes().get("password");
-                String loggedInIndicator = (String) targets.get(0).getAttributes().get("loggedInIndicator");
-                String loggedOutIndicator = (String) targets.get(0).getAttributes().get("loggedOutIndicator");
-                String csrfToken = (String) targets.get(0).getAttributes().get("csrfToken");
-
-
-                contextId = service.createContext(context, includeRegex, excludeRegex);
-                if (authentication) {
-                    userId = service.configureAuthentication(
-                            contextId, loginSite,
-                            usernameFieldId, passwordFieldId,
-                            loginUser, password,
-                            "", loggedInIndicator,
-                            loggedOutIndicator, csrfToken);
-                } else {
-                    contextId = "-1";
-                    userId = "-1";
-                }
-
-                for (Target target : targetsGroupedByContext.get(context)) {
-
-                    String result;
-                    if(zapTopic == ZapTopic.ZAP_SPIDER) {
-                        String spiderApiSpecUrl = (String) target.getAttributes().get("spiderApiSpecUrl");
-                        Integer spiderMaxDepth = (Integer) target.getAttributes().get("spiderMaxDepth");
-                        spiderMaxDepth = (spiderMaxDepth != null) ? spiderMaxDepth : 1;
-                        log.info("Start Spider with URL: " + target.getLocation());
-                        String scanId = (String) service.startSpiderAsUser(target.getLocation(), spiderApiSpecUrl,
-                                spiderMaxDepth, contextId, userId);
-                        result = service.retrieveSpiderResult(scanId);
-                    }
-                    else {
-                        log.info("Start Scanner with URL: " + target.getLocation());
-                        service.recallTarget(target);
-                        String scanId = (String) service.startScannerAsUser(target.getLocation(), contextId, userId);
-                        result = service.retrieveScannerResult(scanId, target.getLocation());
-                    }
-                    if (!"{}".equals(result)) {  // Scanner didn't fail?
-                        List<Finding> scannerResults = taskService.createFindings(result);
-                        scannerResults.forEach(f -> f.getAttributes().put("ZAP_BASE_URL", target.getAttributes().get("ZAP_BASE_URL")));
-                        resultFindings.addAll(scannerResults);
-                        rawFindings.append(result).append(",");
-
-                        log.info("Scan Results for target {}: {}", target.getLocation(), resultFindings);
-                    } else {
-                        publisher.warn("Skipped target processing due to a missing ZAP scan result.");
-                    }
-                }
+                log.info("Scan Results for target {}: {}", target.getLocation(), resultFindings);
+            } else {
+                publisher.warn("Skipped target processing due to a missing ZAP scan result.");
             }
         }
 
