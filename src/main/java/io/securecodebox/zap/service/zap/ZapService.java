@@ -1,7 +1,6 @@
 package io.securecodebox.zap.service.zap;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ning.http.client.AsyncCompletionHandler;
 import com.ning.http.client.AsyncHttpClient;
@@ -27,7 +26,6 @@ import org.zaproxy.clientapi.core.*;
 import org.zaproxy.clientapi.gen.Context;
 
 import javax.annotation.PostConstruct;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.*;
@@ -163,7 +161,7 @@ public class ZapService implements StatusDetailIndicator {
         log.info("Starting spider for targetUrl '{}' and with apiSpecUrl '{}' and maxDepth '{}'", targetUrl, apiSpecUrl, maxDepth);
 
         if (apiSpecUrl != null && !apiSpecUrl.isEmpty()) {
-            api.openapi.importUrl(apiSpecUrl, "false");
+            api.openapi.importUrl(apiSpecUrl, null);
         }
         api.spider.setOptionMaxDepth(maxDepth);
         api.spider.setOptionParseComments(true);
@@ -184,6 +182,8 @@ public class ZapService implements StatusDetailIndicator {
      */
     public Object startScannerAsUser(String targetUrl, String contextId, String userId) throws ClientApiException {
         log.info("Starting scanner for targetUrl '{}'.", targetUrl);
+
+        api.accessUrl(targetUrl);
 
         api.ascan.enableAllScanners(null);
         api.ascan.setOptionHandleAntiCSRFTokens(true);
@@ -235,6 +235,7 @@ public class ZapService implements StatusDetailIndicator {
             spiderResult = ((ApiResponseList) response).getItems().stream()
                     .map(i -> ((ApiResponseList) i).getItems())
                     .flatMap(Collection::stream)
+                    .filter(r -> r instanceof ApiResponseSet)
                     .map(r -> new SpiderResult((ApiResponseSet) r))
                     .collect(Collectors.toList());
         }
