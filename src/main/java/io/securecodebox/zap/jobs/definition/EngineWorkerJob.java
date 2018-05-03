@@ -117,7 +117,7 @@ public class EngineWorkerJob implements JobRunnable {
      * @throws UnsupportedEncodingException
      */
     private void performTask(JobEventPublisher publisher, ZapTask task, ZapTopic zapTopic) throws ClientApiException, UnsupportedEncodingException {
-        String contextId, userId;
+
         List<Finding> resultFindings = new LinkedList<>();
         StringBuilder rawFindings = new StringBuilder("[");
 
@@ -127,71 +127,35 @@ public class EngineWorkerJob implements JobRunnable {
 
             //targets without a base url entry will be ignored
             if (target.getAttributes().get(ZapFields.ZAP_BASE_URL.name()) != null) {
-                String includeRegex;
-                String excludeRegex;
 
                 //Get configuration settings from the task
 
-                if (zapTopic == ZapTopic.ZAP_SPIDER) {
-                    includeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SPIDER_INCLUDE_REGEX.name());
-                    excludeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SPIDER_EXCLUDE_REGEX.name());
-                } else {
-                    includeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_INCLUDE_REGEX.name());
-                    excludeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_EXCLUDE_REGEX.name());
-                }
-                Boolean authentication = (Boolean) target.getAttributes().get(ZapFields.ZAP_AUTHENTICATION.name());
-                authentication = (authentication != null) ? authentication : false;
-                String loginSite = (String) target.getAttributes().get(ZapFields.ZAP_LOGIN_SITE.name());
-                String usernameFieldId = (String) target.getAttributes().get(ZapFields.ZAP_USERNAME_FIELD_ID.name());
-                String passwordFieldId = (String) target.getAttributes().get(ZapFields.ZAP_PW_FIELD_ID.name());
-                String loginUser = (String) target.getAttributes().get(ZapFields.ZAP_LOGIN_USER.name());
-                String password = (String) target.getAttributes().get(ZapFields.ZAP_LOGIN_PW.name());
-                String loggedInIndicator = (String) target.getAttributes().get(ZapFields.ZAP_LOGGED_IN_INDICATOR.name());
-                String loggedOutIndicator = (String) target.getAttributes().get(ZapFields.LOGGED_OUT_INDICATOR.name());
-                String csrfToken = (String) target.getAttributes().get(ZapFields.ZAP_CSRF_TOKEN_ID.name());
+                String includeRegex = (zapTopic == ZapTopic.ZAP_SPIDER)
+                        ?
+                        (String) target.getAttributes().get(ZapFields.ZAP_SPIDER_INCLUDE_REGEX.name())
+                        :
+                        (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_INCLUDE_REGEX.name());
+
+                String excludeRegex = (zapTopic == ZapTopic.ZAP_SPIDER)
+                        ?
+                        (String) target.getAttributes().get(ZapFields.ZAP_SPIDER_EXCLUDE_REGEX.name())
+                        :
+                        (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_EXCLUDE_REGEX.name());
+
 
                 //Create a new Context for each target considering the base url
-                contextId = service.createContext((String) target.getAttributes().get(ZapFields.ZAP_BASE_URL.name()), includeRegex, excludeRegex);
-                if (authentication) {
-                    userId = service.configureAuthentication(
-                            contextId, loginSite,
-                            usernameFieldId, passwordFieldId,
-                            loginUser, password,
-                            "", loggedInIndicator,
-                            loggedOutIndicator, csrfToken);
-                } else {
-                    contextId = "-1";
-                    userId = "-1";
-                }
+                String contextId = service.createContext((String) target.getAttributes().get(ZapFields.ZAP_BASE_URL.name()), includeRegex, excludeRegex);
+                String userId = configureAuthentication(target, contextId);
 
-                String result;
+                String result = (zapTopic == ZapTopic.ZAP_SPIDER)
+                        ?
+                        executeSpider(target, contextId, userId)
+                        :
+                        executeScanner(target, contextId, userId);
 
-                //Execute the spider scan
-                if (zapTopic == ZapTopic.ZAP_SPIDER) {
-                    String spiderApiSpecUrl = (String) target.getAttributes().get(ZapFields.ZAP_SPIDER_API_SPEC_URL.name());
-                    Integer spiderMaxDepth = (Integer) target.getAttributes().get(ZapFields.ZAP_SPIDER_MAX_DEPTH.name());
-                    spiderMaxDepth = (spiderMaxDepth != null) ? spiderMaxDepth : 1;
-                    log.info("Start Spider with URL: " + target.getLocation());
-                    String scanId = (String) service.startSpiderAsUser(target.getLocation(), spiderApiSpecUrl,
-                            spiderMaxDepth, contextId, userId);
-                    result = service.retrieveSpiderResult(scanId);
-
-                //Execute the scanner
-                } else {
-                    log.info("Start Scanner with URL: " + target.getLocation());
-                    service.recallTarget(target);
-                    String scanId = (String) service.startScannerAsUser(target.getLocation(), contextId, userId);
-                    result = service.retrieveScannerResult(scanId, target.getLocation());
-                }
                 if (!"{}".equals(result)) {  // Scanner didn't fail?
+                    addFindingsToResult(target, resultFindings, rawFindings, result);
 
-                    //Combining results of all targets in one list
-                    List<Finding> scannerResults = taskService.createFindings(result);
-                    scannerResults.forEach(f -> f.getAttributes().put(ZapFields.ZAP_BASE_URL.name(), target.getAttributes().get(ZapFields.ZAP_BASE_URL.name())));
-                    resultFindings.addAll(scannerResults);
-                    rawFindings.append(result).append(",");
-
-                    log.info("Scan Results for target {}: {}", target.getLocation(), resultFindings);
                 } else {
                     publisher.warn("Skipped target processing due to a missing ZAP scan result.");
                 }
@@ -209,5 +173,57 @@ public class EngineWorkerJob implements JobRunnable {
         publisher.info("Completed scanner task: " + completedTask);
 
         service.clearSession();
+    }
+
+    private String configureAuthentication(Target target, String contextId) throws ClientApiException, UnsupportedEncodingException{
+
+        Boolean authentication = (Boolean) target.getAttributes().get(ZapFields.ZAP_AUTHENTICATION.name());
+        authentication = (authentication != null) ? authentication : false;
+        String loginSite = (String) target.getAttributes().get(ZapFields.ZAP_LOGIN_SITE.name());
+        String usernameFieldId = (String) target.getAttributes().get(ZapFields.ZAP_USERNAME_FIELD_ID.name());
+        String passwordFieldId = (String) target.getAttributes().get(ZapFields.ZAP_PW_FIELD_ID.name());
+        String loginUser = (String) target.getAttributes().get(ZapFields.ZAP_LOGIN_USER.name());
+        String password = (String) target.getAttributes().get(ZapFields.ZAP_LOGIN_PW.name());
+        String loggedInIndicator = (String) target.getAttributes().get(ZapFields.ZAP_LOGGED_IN_INDICATOR.name());
+        String loggedOutIndicator = (String) target.getAttributes().get(ZapFields.LOGGED_OUT_INDICATOR.name());
+        String csrfToken = (String) target.getAttributes().get(ZapFields.ZAP_CSRF_TOKEN_ID.name());
+
+        if (authentication) {
+           return service.configureAuthentication(
+                    contextId, loginSite,
+                    usernameFieldId, passwordFieldId,
+                    loginUser, password,
+                    "", loggedInIndicator,
+                    loggedOutIndicator, csrfToken);
+        } else {
+           return "-1";
+        }
+    }
+
+    private String executeSpider(Target target, String contextId, String userId) throws ClientApiException{
+        String spiderApiSpecUrl = (String) target.getAttributes().get(ZapFields.ZAP_SPIDER_API_SPEC_URL.name());
+        Integer spiderMaxDepth = (Integer) target.getAttributes().get(ZapFields.ZAP_SPIDER_MAX_DEPTH.name());
+        spiderMaxDepth = (spiderMaxDepth != null) ? spiderMaxDepth : 1;
+        log.info("Start Spider with URL: " + target.getLocation());
+        String scanId = (String) service.startSpiderAsUser(target.getLocation(), spiderApiSpecUrl,
+                spiderMaxDepth, contextId, userId);
+        return service.retrieveSpiderResult(scanId);
+    }
+
+    private String executeScanner(Target target, String contextId, String userId) throws ClientApiException{
+        log.info("Start Scanner with URL: " + target.getLocation());
+        service.recallTarget(target);
+        String scanId = (String) service.startScannerAsUser(target.getLocation(), contextId, userId);
+        return service.retrieveScannerResult(scanId, target.getLocation());
+    }
+
+    private void addFindingsToResult(Target target, List<Finding> resultFindings, StringBuilder rawFindings, String result){
+        //Combining results of all targets in one list
+        List<Finding> scannerResults = taskService.createFindings(result);
+        scannerResults.forEach(f -> f.getAttributes().put(ZapFields.ZAP_BASE_URL.name(), target.getAttributes().get(ZapFields.ZAP_BASE_URL.name())));
+        resultFindings.addAll(scannerResults);
+        rawFindings.append(result).append(",");
+
+        log.info("Scan Results for target {}: {}", target.getLocation(), resultFindings);
     }
 }
