@@ -55,8 +55,9 @@ public class ZapTaskService extends TaskService {
         return taskApiClient.fetchAndLockTask(zapTopic, config.getAppId());
     }
 
-    public CompleteTask completeTask(ZapTask zapTask, List<Finding> findings, String rawResult) {
-        CompleteTask task = new CompleteTask(config.getAppId(), zapTask.getJobId(), config.getScannerType(), findings, rawResult);
+    public CompleteTask completeTask(ZapTask zapTask, List<Finding> findings, String rawResult, ZapTopic zapTopic) {
+        String scannerType = (zapTopic == ZapTopic.ZAP_SCANNER) ? config.getScannerType() : config.getSpiderType();
+        CompleteTask task = new CompleteTask(config.getAppId(), zapTask.getJobId(), scannerType, findings, rawResult);
         if (!ZapFeature.DISABLE_COMPLETE_ZAP_PROCESS_TASKS.isActive()) {
             taskApiClient.completeTask(task);
         }

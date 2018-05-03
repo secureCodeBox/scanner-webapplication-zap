@@ -25,6 +25,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 
+/**
+ * Configuration class for the application defining various properties which can be overridden by setting environment variables
+ */
 @Component
 @ConfigurationProperties(prefix = "securecodebox.zap")
 @Data

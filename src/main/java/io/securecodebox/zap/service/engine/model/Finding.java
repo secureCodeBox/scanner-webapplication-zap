@@ -28,6 +28,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * A single result of a scan job
+ */
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 @Data
 @ToString

@@ -48,6 +48,7 @@ import java.util.Map;
 
 /**
  * Consumes and integrates the Camunda process engine API for external tasks.
+ * Executes the REST calls
  */
 @Service
 @Slf4j

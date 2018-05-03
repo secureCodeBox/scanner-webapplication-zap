@@ -27,6 +27,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
+/**
+ * Describes an external task from the engine
+ */
 @Data
 @Slf4j
 @JsonIgnoreProperties(ignoreUnknown = true)

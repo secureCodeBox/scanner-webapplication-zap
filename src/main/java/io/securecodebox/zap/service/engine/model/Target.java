@@ -27,10 +27,6 @@ import lombok.Data;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * @author Rüdiger Heins - iteratec GmbH
- * @since 17.04.18
- */
 @JsonPropertyOrder(alphabetic = true)
 @Data
 public class Target {

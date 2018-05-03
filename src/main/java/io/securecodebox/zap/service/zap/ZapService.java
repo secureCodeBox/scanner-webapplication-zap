@@ -150,7 +150,10 @@ public class ZapService implements StatusDetailIndicator {
         return userId;
     }
 
-
+    /**
+     * Recalls a request for putting it in the ZAP cache
+     * @param request the request to recall
+     */
     public void recallTarget(Target request) {
         Collection<Cookie> cookies = enforceSessionCookie(request.getLocation());
 
