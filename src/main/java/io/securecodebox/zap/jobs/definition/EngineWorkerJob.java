@@ -201,7 +201,7 @@ public class EngineWorkerJob implements JobRunnable {
     }
 
     private String executeSpider(Target target, String contextId, String userId) throws ClientApiException{
-        String spiderApiSpecUrl = (String) target.getAttributes().get(ZapFields.ZAP_SPIDER_API_SPEC_URL.name());
+        String spiderApiSpecUrl = config.getProcessEngineApiUrl() + "/rest/" + target.getAttributes().get(ZapFields.ZAP_SPIDER_API_SPEC_URL.name());
         Integer spiderMaxDepth = (Integer) target.getAttributes().get(ZapFields.ZAP_SPIDER_MAX_DEPTH.name());
         spiderMaxDepth = (spiderMaxDepth != null) ? spiderMaxDepth : 1;
         log.info("Start Spider with URL: " + target.getLocation());
