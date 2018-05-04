@@ -12,7 +12,7 @@ RUN pip install supervisor-stdout
 
 COPY dockerfiles/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY dockerfiles/csrfAuthScript.js /zap/scripts/templates/authentication/csrfAuthScript.js
-COPY --from=builder /home/gradle/build/libs/secureBoxZap-rest-service-0.4.0-SNAPSHOT.jar /app.jar
+COPY --from=builder /home/gradle/build/libs/scanner-webapplication-zap-0.4.0-SNAPSHOT.jar /app.jar
 
 VOLUME /tmp
 VOLUME /var/log/supervisor

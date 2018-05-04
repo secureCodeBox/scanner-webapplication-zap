@@ -1,7 +1,5 @@
 buildscript {
     ext {
-        artifactoryPluginVersion = '4.7.1'
-        dependencyCheckVersion = '3.1.2'
         gradleLombokVersion = "1.11"  // Problem in IntelliJ with 1.12
         sonarQubePluginVersion = '2.6.2'
         springBootVersion = '1.5.11.RELEASE'
@@ -15,24 +13,18 @@ buildscript {
     }
     dependencies {
         classpath "io.franzbecker:gradle-lombok:${gradleLombokVersion}"
-        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:${artifactoryPluginVersion}"
-        classpath "org.owasp:dependency-check-gradle:${dependencyCheckVersion}"
         classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:${sonarQubePluginVersion}"
         classpath "org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}"
-        classpath 'org.unbroken-dome.gradle-plugins:gradle-testsets-plugin:1.4.5'
     }
 }
 
-apply plugin: 'com.jfrog.artifactory'
 apply plugin: 'eclipse'
 apply plugin: 'io.franzbecker.gradle-lombok'
 apply plugin: 'io.spring.dependency-management'
 apply plugin: 'java'
 apply plugin: 'maven-publish'
-apply plugin: 'org.owasp.dependencycheck'
 apply plugin: 'org.sonarqube'
 apply plugin: 'org.springframework.boot'
-apply plugin: 'org.unbroken-dome.test-sets'
 
 repositories {
     mavenCentral()
@@ -57,45 +49,8 @@ dependencies {
 compileJava.dependsOn(processResources)
 
 jar {
-    baseName = artifactName
+    baseName = project.name
     manifest.attributes provider: 'gradle'
-}
-
-eclipse {
-    classpath {
-        containers.remove('org.eclipse.jdt.launching.JRE_CONTAINER')
-        containers 'org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8'
-    }
-}
-
-artifactory {
-    contextUrl = 'https://artifactory.iteratec.de/artifactory'
-    publish {
-        repository {
-            repoKey = 'securebox-local'
-            username = artifactory_user
-            password = artifactory_password
-            maven = true
-        }
-        defaults {
-            publications('mavenJava')
-        }
-    }
-}
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-            artifactId artifactName
-        }
-    }
-}
-
-dependencyCheck {
-    if (System.getenv('bamboo_cvss_limit') != null) {
-        failBuildOnCVSS = (System.getenv('bamboo_cvss_limit')).toInteger()
-    }
 }
 
 // Passing the active profile information in the case of a simple "gradle bootRun".
