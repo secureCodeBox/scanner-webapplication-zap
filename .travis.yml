@@ -1,0 +1,30 @@
+---
+sudo: true
+
+language: java
+
+services:
+  - docker
+
+cache:
+  directories:
+  - .autoconf
+  - $HOME/.m2
+
+script:
+  - echo -en "travis_fold:start:Docker_Build\r"
+  - docker build -t securecodebox/zap:oss .
+  - echo -en "travis_fold:end:Docker_Build\r"
+  - docker images
+
+deploy:
+  -  provider: script
+     skip_cleanup: true
+     script: bash deploy.sh
+     on:
+       branch: develop
+  -  provider: script
+     skip_cleanup: true
+     script: bash deploy.sh
+     on:
+       branch: master
