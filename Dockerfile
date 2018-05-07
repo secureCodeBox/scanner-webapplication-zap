@@ -16,16 +16,16 @@ COPY --from=builder /home/gradle/build/libs/scanner-webapplication-zap-0.4.0-SNA
 
 RUN chown zap:zap /app.jar && \
     chown zap:zap /usr/bin/supervisord && \
-    chown zap:zap /var/log/supervisor
+    chown zap:zap /var/log/supervisor && \
+    chmod -R g+r /var/log/supervisor && \
+    chmod -R g+w /var/log/supervisor && \
+    chmod -R 777 /var/log/supervisor
 
 EXPOSE 8080 8090
 
 ENV JAVA_OPTS ""
 
 USER zap
-
-VOLUME /tmp
-VOLUME /var/log/supervisor
 
 ENTRYPOINT ["/usr/bin/supervisord"]
 CMD []
