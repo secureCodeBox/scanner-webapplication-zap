@@ -1,3 +1,6 @@
+![Build Status](https://travis-ci.com/secureCodeBox/scanner-webapplication-zap.svg?token=2Rsf2E9Bq3FduSxRf6tz&branch=develop)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 # How to build and start the Zap Webapplication Scanner
 
 By default the scanprocess gets started automatically with the startup of the secureCodeBox. However, if you want to start the scanner manually, you can do so by following the steps below.
