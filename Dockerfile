@@ -14,14 +14,18 @@ COPY dockerfiles/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY dockerfiles/csrfAuthScript.js /zap/scripts/templates/authentication/csrfAuthScript.js
 COPY --from=builder /home/gradle/build/libs/scanner-webapplication-zap-0.4.0-SNAPSHOT.jar /app.jar
 
-VOLUME /tmp
-VOLUME /var/log/supervisor
+RUN chown zap:zap /app.jar && \
+    chown zap:zap /usr/bin/supervisord && \
+    chown zap:zap /var/log/supervisor
 
 EXPOSE 8080 8090
 
 ENV JAVA_OPTS ""
 
-RUN sh -c 'touch /app.jar'
+USER zap
+
+VOLUME /tmp
+VOLUME /var/log/supervisor
 
 ENTRYPOINT ["/usr/bin/supervisord"]
 CMD []

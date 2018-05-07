@@ -1,0 +1,9 @@
+build/
+.idea/
+.gradle/
+gradle/
+deploy.sh
+gradlew.bat
+gradlew
+.travis.yml
+Dockerfile
