@@ -41,7 +41,9 @@ import org.zaproxy.clientapi.core.ClientApiException;
 import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static de.otto.edison.jobs.definition.DefaultJobDefinition.retryableCronJobDefinition;
 import static java.time.Duration.ofMinutes;
@@ -73,6 +75,7 @@ public class EngineWorkerJob implements JobRunnable {
 
     /**
      * Main entry point
+     *
      * @param publisher
      */
     @Override
@@ -88,70 +91,59 @@ public class EngineWorkerJob implements JobRunnable {
                 publisher.info(String.format("Fetched spider task: %s", spiderTask.toString()));
 
                 //execute the spider task
-                performTask(publisher, spiderTask, ZapTopic.ZAP_SPIDER);
+                performSpiderTask(publisher, spiderTask);
             } else {
                 publisher.info("No spider tasks fetched.");
             }
 
             if (scannerTask != null) {
                 publisher.info(String.format("Fetched scanner task: %s", scannerTask.toString()));
-                performTask(publisher, scannerTask, ZapTopic.ZAP_SCANNER);
+                performScannerTask(publisher, scannerTask);
             } else {
                 publisher.info("No scanner tasks fetched.");
             }
-        }
-        catch (ClientApiException | RuntimeException e) {
+        } catch (ClientApiException | RuntimeException e) {
             log.error("Job execution error!", e);
-        }
-        catch (UnsupportedEncodingException e) {
+        } catch (UnsupportedEncodingException e) {
             log.error("Couldn't define session management!", e);
         }
     }
 
     /**
-     * Perform spider and scanner tasks and post the result back to the engine
+     * Perform scanner tasks and post the result back to the engine
+     *
      * @param publisher
-     * @param task the task to be executed
-     * @param zapTopic the topic of the task
+     * @param task      the task to be executed
      * @throws ClientApiException
      * @throws UnsupportedEncodingException
      */
-    private void performTask(JobEventPublisher publisher, ZapTask task, ZapTopic zapTopic) throws ClientApiException, UnsupportedEncodingException {
+    private void performScannerTask(JobEventPublisher publisher, ZapTask task) throws ClientApiException, UnsupportedEncodingException {
 
         List<Finding> resultFindings = new LinkedList<>();
         StringBuilder rawFindings = new StringBuilder("[");
 
-        log.info("Starting Task for topic {} with targets: {}", zapTopic, task.getTargets());
+        log.info("Starting Scanner Task with targets: {}", task.getTargets());
 
-        for (Target target : task.getTargets()) {
+        Map<String, List<Target>> targetsGroupedByContext = task.getTargets().stream()
+                .filter(target -> target.getAttributes().get(ZapFields.ZAP_BASE_URL.name()) != null)
+                .collect(Collectors.groupingBy(target -> (String) target.getAttributes().get(ZapFields.ZAP_BASE_URL.name())));
 
-            //targets without a base url entry will be ignored
-            if (target.getAttributes().get(ZapFields.ZAP_BASE_URL.name()) != null) {
+        log.info("Grouped Urls by Base Url: {}", targetsGroupedByContext);
 
-                //Get configuration settings from the task
+        /* This loop searches through the list of targets belonging to one context looking for an include Regex and an
+           exclude regex to define the context of the zap scanner. It takes the first value found for each of the regexes
+           To ensure proper functionality of the scanner, all targets belonging to a context should have the same
+           include and exclude regexes
+         */
+        for (String context : targetsGroupedByContext.keySet()) {
 
-                String includeRegex = (zapTopic == ZapTopic.ZAP_SPIDER)
-                        ?
-                        (String) target.getAttributes().get(ZapFields.ZAP_SPIDER_INCLUDE_REGEX.name())
-                        :
-                        (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_INCLUDE_REGEX.name());
+            List<Target> targets = targetsGroupedByContext.get(context);
+            String contextId = configureScannerContext(context, targets);
 
-                String excludeRegex = (zapTopic == ZapTopic.ZAP_SPIDER)
-                        ?
-                        (String) target.getAttributes().get(ZapFields.ZAP_SPIDER_EXCLUDE_REGEX.name())
-                        :
-                        (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_EXCLUDE_REGEX.name());
+            for (Target target : targets) {
 
-
-                //Create a new Context for each target considering the base url
-                String contextId = service.createContext((String) target.getAttributes().get(ZapFields.ZAP_BASE_URL.name()), includeRegex, excludeRegex);
                 String userId = configureAuthentication(target, contextId);
-
-                String result = (zapTopic == ZapTopic.ZAP_SPIDER)
-                        ?
-                        executeSpider(target, contextId, userId)
-                        :
-                        executeScanner(target, contextId, userId);
+                String result = executeScanner(target, contextId, userId);
 
                 if (!"{}".equals(result)) {  // Scanner didn't fail?
                     addFindingsToResult(target, resultFindings, rawFindings, result);
@@ -163,19 +155,70 @@ public class EngineWorkerJob implements JobRunnable {
         }
 
         //Finish the scanner task and post findings to the engine
-
-        int lastIndex = rawFindings.lastIndexOf(",");
-        if (lastIndex != -1) {
-            rawFindings.deleteCharAt(lastIndex);
-        }
-        rawFindings.append("]");
-        CompleteTask completedTask = taskService.completeTask(task, resultFindings, rawFindings.toString(), zapTopic);
-        publisher.info("Completed scanner task: " + completedTask);
-
-        service.clearSession();
+        completeTask(task, publisher, resultFindings, rawFindings, ZapTopic.ZAP_SCANNER);
     }
 
-    private String configureAuthentication(Target target, String contextId) throws ClientApiException, UnsupportedEncodingException{
+    private String configureScannerContext(String context, List<Target> targets) throws ClientApiException {
+
+        //Get configuration settings from the target
+        String includeRegex = null;
+        String excludeRegex = null;
+
+        for (Target target : targets) {
+            if (includeRegex == null) {
+                includeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_INCLUDE_REGEX.name());
+            }
+            if (excludeRegex == null) {
+                excludeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_EXCLUDE_REGEX.name());
+            }
+            if (includeRegex != null && excludeRegex != null) {
+                break;
+            }
+        }
+
+        //Create a new Context for all the targets belonging to this context
+        return service.createContext(context, includeRegex, excludeRegex);
+    }
+
+    /**
+     * Perform spider tasks and post the result back to the engine
+     *
+     * @param publisher
+     * @param task      the task to be executed
+     * @throws ClientApiException
+     * @throws UnsupportedEncodingException
+     */
+    private void performSpiderTask(JobEventPublisher publisher, ZapTask task) throws ClientApiException, UnsupportedEncodingException {
+
+        List<Finding> resultFindings = new LinkedList<>();
+        StringBuilder rawFindings = new StringBuilder("[");
+
+        log.info("Starting Spider Task with targets: {}", task.getTargets());
+
+        for (Target target : task.getTargets()) {
+
+            String includeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_INCLUDE_REGEX.name());
+            String excludeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_EXCLUDE_REGEX.name());
+
+            //Create a new Context for each target
+            String contextId = service.createContext((String) target.getAttributes().get(ZapFields.ZAP_BASE_URL.name()), includeRegex, excludeRegex);
+
+            String userId = configureAuthentication(target, contextId);
+            String result = executeSpider(target, contextId, userId);
+
+            if (!"{}".equals(result)) {  // Scanner didn't fail?
+                addFindingsToResult(target, resultFindings, rawFindings, result);
+
+            } else {
+                publisher.warn("Skipped target processing due to a missing ZAP scan result.");
+            }
+        }
+
+        //Finish the spider task and post findings to the engine
+        completeTask(task, publisher, resultFindings, rawFindings, ZapTopic.ZAP_SPIDER);
+    }
+
+    private String configureAuthentication(Target target, String contextId) throws ClientApiException, UnsupportedEncodingException {
 
         Boolean authentication = (Boolean) target.getAttributes().get(ZapFields.ZAP_AUTHENTICATION.name());
         authentication = (authentication != null) ? authentication : false;
@@ -189,19 +232,25 @@ public class EngineWorkerJob implements JobRunnable {
         String csrfToken = (String) target.getAttributes().get(ZapFields.ZAP_CSRF_TOKEN_ID.name());
 
         if (authentication) {
-           return service.configureAuthentication(
+            return service.configureAuthentication(
                     contextId, loginSite,
                     usernameFieldId, passwordFieldId,
                     loginUser, password,
                     "", loggedInIndicator,
                     loggedOutIndicator, csrfToken);
         } else {
-           return "-1";
+            return "-1";
         }
     }
 
-    private String executeSpider(Target target, String contextId, String userId) throws ClientApiException{
-        String spiderApiSpecUrl = config.getProcessEngineApiUrl() + "/rest/" + target.getAttributes().get(ZapFields.ZAP_SPIDER_API_SPEC_URL.name());
+    private String executeSpider(Target target, String contextId, String userId) throws ClientApiException {
+
+
+        String spiderApiSpecUrl = (target.getAttributes().get(ZapFields.ZAP_SPIDER_API_SPEC_URL.name()) != null)
+                ?
+                config.getProcessEngineApiUrl() + "/rest/" + target.getAttributes().get(ZapFields.ZAP_SPIDER_API_SPEC_URL.name())
+                :
+                null;
         Integer spiderMaxDepth = (Integer) target.getAttributes().get(ZapFields.ZAP_SPIDER_MAX_DEPTH.name());
         spiderMaxDepth = (spiderMaxDepth != null) ? spiderMaxDepth : 1;
         log.info("Start Spider with URL: " + target.getLocation());
@@ -210,14 +259,14 @@ public class EngineWorkerJob implements JobRunnable {
         return service.retrieveSpiderResult(scanId);
     }
 
-    private String executeScanner(Target target, String contextId, String userId) throws ClientApiException{
+    private String executeScanner(Target target, String contextId, String userId) throws ClientApiException {
         log.info("Start Scanner with URL: " + target.getLocation());
         service.recallTarget(target);
         String scanId = (String) service.startScannerAsUser(target.getLocation(), contextId, userId);
         return service.retrieveScannerResult(scanId, target.getLocation());
     }
 
-    private void addFindingsToResult(Target target, List<Finding> resultFindings, StringBuilder rawFindings, String result){
+    private void addFindingsToResult(final Target target, List<Finding> resultFindings, StringBuilder rawFindings, String result) {
         //Combining results of all targets in one list
         List<Finding> scannerResults = taskService.createFindings(result);
         scannerResults.forEach(f -> f.getAttributes().put(ZapFields.ZAP_BASE_URL.name(), target.getAttributes().get(ZapFields.ZAP_BASE_URL.name())));
@@ -225,5 +274,17 @@ public class EngineWorkerJob implements JobRunnable {
         rawFindings.append(result).append(",");
 
         log.info("Scan Results for target {}: {}", target.getLocation(), resultFindings);
+    }
+
+    private void completeTask(ZapTask task, JobEventPublisher publisher, List<Finding> findings, StringBuilder rawFindings, ZapTopic zapTopic) throws ClientApiException {
+        int lastIndex = rawFindings.lastIndexOf(",");
+        if (lastIndex != -1) {
+            rawFindings.deleteCharAt(lastIndex);
+        }
+        rawFindings.append("]");
+        CompleteTask completedTask = taskService.completeTask(task, findings, rawFindings.toString(), zapTopic);
+        publisher.info("Completed scanner task: " + completedTask);
+
+        service.clearSession();
     }
 }
