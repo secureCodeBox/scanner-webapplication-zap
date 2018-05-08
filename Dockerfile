@@ -17,6 +17,7 @@ COPY --from=builder /home/gradle/build/libs/scanner-webapplication-zap-0.4.0-SNA
 RUN chown zap:zap /app.jar && \
     chown zap:zap /usr/bin/supervisord && \
     chown zap:zap /var/log/supervisor && \
+    touch /zap/supervisord.sock && \
     chown zap:zap /zap/supervisord.sock && \
     chmod -R g+r /var/log/supervisor && \
     chmod -R g+w /var/log/supervisor && \
