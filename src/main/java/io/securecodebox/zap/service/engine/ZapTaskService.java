@@ -68,9 +68,8 @@ public class ZapTaskService extends TaskService {
 
         ObjectMapper objectMapper = new ObjectMapper();
         try {
-            final List<Finding> scanResults = objectMapper.readValue(zapResult, objectMapper.getTypeFactory()
+            return objectMapper.readValue(zapResult, objectMapper.getTypeFactory()
                     .constructCollectionType(List.class, Finding.class));
-            return scanResults;
         }
         catch (IOException e) {
             log.error("Cannot construct findings due to reason: {}", e);
