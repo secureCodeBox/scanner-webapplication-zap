@@ -54,6 +54,9 @@ public class Finding {
     private String location;
     private Map<String, Object> attributes = new HashMap<>();
 
+    private static final List<String> RELEVANT_ATTRIBUTES = Arrays.asList(ZapFields.ZAP_BASE_URL.name(),
+            "alert", "attack", "confidence", "evidence", "other", "param", "reliability");
+
     @JsonAnySetter
     public void handleUnknownProperty(String key, String value){
         attributes.put(key, value);
@@ -83,9 +86,8 @@ public class Finding {
         if(!(o instanceof Finding)){
             return false;
         }
-        List<String> attributesList = Arrays.asList(ZapFields.ZAP_BASE_URL.name(), "alert", "attack", "confidence",
-                "evidence", "other", "param", "reliability");
-        for(String s : attributesList){
+
+        for(String s : RELEVANT_ATTRIBUTES){
             if(!equalsOrNull(this.getAttributes().get(s), ((Finding)o).getAttributes().get(s))){
                 return false;
             }
@@ -114,11 +116,8 @@ public class Finding {
     @Override
     public int hashCode() {
 
-        List<String> attributesList = Arrays.asList(ZapFields.ZAP_BASE_URL.name(), "alert", "attack", "confidence",
-                "evidence", "other", "param", "reliability");
-
         List<Object> objects = new LinkedList<>();
-        for(String s : attributesList){
+        for(String s : RELEVANT_ATTRIBUTES){
             objects.add(getAttributes().get(s));
         }
         return Objects.hash(name, description, category, osiLayer, severity, reference.getSource(), hint, location, objects);
