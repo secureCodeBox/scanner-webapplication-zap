@@ -21,12 +21,11 @@
 package io.securecodebox.zap.service.engine.model;
 
 import com.fasterxml.jackson.annotation.*;
+import io.securecodebox.zap.service.engine.model.zap.ZapFields;
 import lombok.Data;
 import lombok.ToString;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * A single result of a scan job
@@ -70,5 +69,58 @@ public class Finding {
 
     public String getSeverity() {
         return severity != null ? severity.toUpperCase() : "INFORMATIONAL";
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if(this == o) {
+            return true;
+        }
+        if(o == null){
+            return false;
+        }
+        if(!(o instanceof Finding)){
+            return false;
+        }
+        List<String> attributesList = Arrays.asList(ZapFields.ZAP_BASE_URL.name(), "alert", "attack", "confidence",
+                "evidence", "other", "param", "reliability");
+        for(String s : attributesList){
+            if(!equalsOrNull(this.getAttributes().get(s), ((Finding)o).getAttributes().get(s))){
+                return false;
+            }
+        }
+        return equalsOrNull(this.getCategory(), ((Finding) o).getCategory()) &&
+                equalsOrNull(this.getDescription(), ((Finding) o).getDescription()) &&
+                equalsOrNull(this.getHint(), ((Finding) o).getHint()) &&
+                equalsOrNull(this.getLocation(), ((Finding) o).getLocation()) &&
+                equalsOrNull(this.getName(), ((Finding) o).getName()) &&
+                ((this.getReference() != null && ((Finding) o).getReference() != null &&
+                        equalsOrNull(this.getReference().getSource(), ((Finding) o).getReference().getSource())) ||
+                        (this.getReference() == null && ((Finding) o).getReference() == null)) &&
+                equalsOrNull(this.getOsiLayer(), ((Finding) o).getOsiLayer()) &&
+                equalsOrNull(this.getSeverity(), ((Finding) o).getSeverity());
+    }
+
+    private static boolean equalsOrNull(Object o1, Object o2){
+        if(o1 == null){
+            return o2 == null;
+        }
+        else {
+            return o2 != null && o1.equals(o2);
+        }
+    }
+
+    @Override
+    public int hashCode() {
+
+        List<String> attributesList = Arrays.asList(ZapFields.ZAP_BASE_URL.name(), "alert", "attack", "confidence",
+                "evidence", "other", "param", "reliability");
+
+        List<Object> objects = new LinkedList<>();
+        for(String s : attributesList){
+            objects.add(getAttributes().get(s));
+        }
+        return Objects.hash(name, description, category, osiLayer, severity, reference.getSource(), hint, location, objects);
     }
 }

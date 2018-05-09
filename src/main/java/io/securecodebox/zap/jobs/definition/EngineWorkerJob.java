@@ -39,10 +39,7 @@ import org.springframework.stereotype.Component;
 import org.zaproxy.clientapi.core.ClientApiException;
 
 import java.io.UnsupportedEncodingException;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static de.otto.edison.jobs.definition.DefaultJobDefinition.retryableCronJobDefinition;
@@ -146,7 +143,7 @@ public class EngineWorkerJob implements JobRunnable {
                 String result = executeScanner(target, contextId, userId);
 
                 if (!"{}".equals(result)) {  // Scanner didn't fail?
-                    addFindingsToResult(target, resultFindings, rawFindings, result);
+                    addFindingsToResult(context, resultFindings, rawFindings, result);
 
                 } else {
                     publisher.warn("Skipped target processing due to a missing ZAP scan result.");
@@ -154,6 +151,7 @@ public class EngineWorkerJob implements JobRunnable {
             }
         }
 
+        removeDuplicateScanResults(resultFindings);
         //Finish the scanner task and post findings to the engine
         completeTask(task, publisher, resultFindings, rawFindings, ZapTopic.ZAP_SCANNER);
     }
@@ -207,7 +205,7 @@ public class EngineWorkerJob implements JobRunnable {
             String result = executeSpider(target, contextId, userId);
 
             if (!"{}".equals(result)) {  // Scanner didn't fail?
-                addFindingsToResult(target, resultFindings, rawFindings, result);
+                addFindingsToResult(target.getLocation(), resultFindings, rawFindings, result);
 
             } else {
                 publisher.warn("Skipped target processing due to a missing ZAP scan result.");
@@ -266,14 +264,14 @@ public class EngineWorkerJob implements JobRunnable {
         return service.retrieveScannerResult(scanId, target.getLocation());
     }
 
-    private void addFindingsToResult(final Target target, List<Finding> resultFindings, StringBuilder rawFindings, String result) {
+    private void addFindingsToResult(String baseUrl, List<Finding> resultFindings, StringBuilder rawFindings, String result) {
         //Combining results of all targets in one list
         List<Finding> scannerResults = taskService.createFindings(result);
-        scannerResults.forEach(f -> f.getAttributes().put(ZapFields.ZAP_BASE_URL.name(), target.getAttributes().get(ZapFields.ZAP_BASE_URL.name())));
+        scannerResults.forEach(f -> f.getAttributes().put(ZapFields.ZAP_BASE_URL.name(), baseUrl));
         resultFindings.addAll(scannerResults);
         rawFindings.append(result).append(",");
 
-        log.info("Scan Results for target {}: {}", target.getLocation(), resultFindings);
+        log.info("Scan Results for target {}: {}", baseUrl, resultFindings);
     }
 
     private void completeTask(ZapTask task, JobEventPublisher publisher, List<Finding> findings, StringBuilder rawFindings, ZapTopic zapTopic) throws ClientApiException {
@@ -283,8 +281,17 @@ public class EngineWorkerJob implements JobRunnable {
         }
         rawFindings.append("]");
         CompleteTask completedTask = taskService.completeTask(task, findings, rawFindings.toString(), zapTopic);
-        publisher.info("Completed scanner task: " + completedTask);
+        publisher.info("Completed" + ((zapTopic == ZapTopic.ZAP_SCANNER) ?  "scanner" : "spider") + "task: " + completedTask);
 
         service.clearSession();
     }
+
+    public static void removeDuplicateScanResults(List<Finding> findings){
+
+        Set<Finding> findingSet = new HashSet<>(findings);
+        findings.clear();
+        findings.addAll(findingSet);
+    }
+
+
 }
