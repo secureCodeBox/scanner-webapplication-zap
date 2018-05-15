@@ -44,6 +44,8 @@ dependencies {
     compile group: 'org.springframework.boot', name: 'spring-boot-devtools'
     compile group: 'org.zaproxy', name: 'zap', version: '2.7.0'
     compile group: 'org.zaproxy', name: 'zap-clientapi', version: '1.6.0'
+
+    testCompile group: 'org.mockito', name: 'mockito-all', version: '1.9.5'
 }
 
 compileJava.dependsOn(processResources)
