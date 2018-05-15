@@ -33,6 +33,7 @@ import de.otto.edison.status.indicator.StatusDetailIndicator;
 import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.model.Target;
 import io.securecodebox.zap.service.zap.model.SpiderResult;
+import lombok.NonNull;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONArray;
@@ -90,22 +91,30 @@ public class ZapService implements StatusDetailIndicator {
      * @param targetUrl Target URL to create a new session and context for
      * @return Created context ID
      */
-    public String createContext(String targetUrl, String contextIncludeRegex, String contextExcludeRegex) throws ClientApiException {
+    public String createContext(String targetUrl, List<String> contextIncludeRegex, List<String> contextExcludeRegex) throws ClientApiException {
         log.info("Starting to create a new ZAP session '{}' and context '{}'.", SESSION_NAME, CONTEXT_NAME);
 
-        if (contextIncludeRegex == null || contextIncludeRegex.isEmpty()) {
-            contextIncludeRegex = "\\Q" + targetUrl + "\\E.*";
-            contextExcludeRegex = null;
+        if(contextIncludeRegex == null){
+            contextIncludeRegex = new LinkedList<>();
+        }
+        if(contextExcludeRegex == null){
+            contextExcludeRegex = new LinkedList<>();
+        }
+
+        if (contextIncludeRegex.isEmpty()) {
+            contextIncludeRegex.add("\\Q" + targetUrl + "\\E.*");
         }
 
         api.core.newSession(SESSION_NAME, "true");
 
         Context context = new Context(api);
         String contextId = getSingleResult(context.newContext(CONTEXT_NAME));
-        context.includeInContext(CONTEXT_NAME, contextIncludeRegex);
+        for(String regex : contextIncludeRegex){
+            context.includeInContext(contextId, regex);
+        }
 
-        if (contextExcludeRegex != null && !contextExcludeRegex.isEmpty()) {
-            context.excludeFromContext(CONTEXT_NAME, contextExcludeRegex);
+        for(String regex : contextExcludeRegex){
+            context.excludeFromContext(contextId, regex);
         }
 
         api.sessionManagement.setSessionManagementMethod(contextId, "cookieBasedSessionManagement", null);
@@ -125,15 +134,25 @@ public class ZapService implements StatusDetailIndicator {
      * @param tokenId If non-empty the authentication is script-based instead of form-based
      * @return New user ID
      */
-    public String configureAuthentication(String contextId, String loginUrl, String usernameFieldId, String passwordFieldId, String username, String password, String loginQueryExtension, String loggedInIndicator, String loggedOutIndicator, String tokenId) throws ClientApiException, UnsupportedEncodingException {
+    public String configureAuthentication(String contextId, String loginUrl, String usernameFieldId, String passwordFieldId,
+                                          String username, String password, String loginQueryExtension, String loggedInIndicator,
+                                          String loggedOutIndicator, String tokenId) throws ClientApiException, UnsupportedEncodingException {
         log.info("Configuring ZAP based authentication for user '{}' and loginUrl '{}'", username, loginUrl);
 
-        if (tokenId.isEmpty()) {
-            api.authentication.setAuthenticationMethod(contextId, AUTH_FORM_BASED, "loginUrl=" + URLEncoder.encode(loginUrl, "UTF-8") + "&loginRequestData=" + URLEncoder.encode(usernameFieldId + "={%username%}&" + passwordFieldId + "={%password%}" + loginQueryExtension, "UTF-8"));
+        if (tokenId == null || tokenId.isEmpty()) {
+            api.authentication.setAuthenticationMethod(contextId, AUTH_FORM_BASED, "loginUrl=" +
+                    URLEncoder.encode(loginUrl, "UTF-8") + "&loginRequestData=" +
+                    URLEncoder.encode(usernameFieldId + "={%username%}&" + passwordFieldId + "={%password%}" +
+                            loginQueryExtension, "UTF-8"));
         } else {
-            api.authentication.setAuthenticationMethod(contextId, AUTH_SCRIPT_BASED, "scriptName=csrfAuthScript" + "&LoginURL=" + loginUrl + "&CSRFField=" + tokenId + "&POSTData=" + URLEncoder.encode(usernameFieldId + "={%username%}&" + passwordFieldId + "={%password%}&" + tokenId + "={%user_token%}", "UTF-8") + loginQueryExtension);
+            api.authentication.setAuthenticationMethod(contextId, AUTH_SCRIPT_BASED,
+                    "scriptName=csrfAuthScript" + "&LoginURL=" + loginUrl + "&CSRFField=" +
+                            tokenId + "&POSTData=" + URLEncoder.encode(usernameFieldId + "={%username%}&" +
+                            passwordFieldId + "={%password%}&" + tokenId + "={%user_token%}", "UTF-8") + loginQueryExtension);
             api.acsrf.addOptionToken(tokenId);
-            api.script.load("csrfAuthScript", "authentication", "Oracle Nashorn", "csrfAuthScript.js", "csrfloginscript");  // TODO First check if api.script.listScripts() contains "csrfAuthScript" ?
+            api.script.load("csrfAuthScript", "authentication", "Oracle Nashorn",
+                    "csrfAuthScript.js", "csrfloginscript");
+            // TODO First check if api.script.listScripts() contains "csrfAuthScript" ?
         }
 
         if (loggedInIndicator != null && !loggedInIndicator.isEmpty()) {
@@ -144,8 +163,10 @@ public class ZapService implements StatusDetailIndicator {
         }
 
         String userId = getSingleResult(api.users.newUser(contextId, AUTH_USER));
-        api.users.setAuthenticationCredentials(contextId, userId, URLEncoder.encode("username=", "UTF-8") + username + URLEncoder.encode("&password=", "UTF-8") + password);
+        api.users.setAuthenticationCredentials(contextId, userId, "username=" + username + "&password=" + password);
         api.users.setUserEnabled(contextId, userId, "true");
+        api.forcedUser.setForcedUser(contextId, userId);
+        api.forcedUser.setForcedUserModeEnabled(true);
 
         return userId;
     }
@@ -204,7 +225,7 @@ public class ZapService implements StatusDetailIndicator {
      * @return New scanner scan ID
      */
     public Object startScannerAsUser(String targetUrl, String contextId, String userId) throws ClientApiException {
-        log.info("Starting scanner for targetUrl '{}'.", targetUrl);
+        log.info("Starting scanner for targetUrl '{}' and userId {}.", targetUrl, userId);
 
         api.accessUrl(targetUrl);
 

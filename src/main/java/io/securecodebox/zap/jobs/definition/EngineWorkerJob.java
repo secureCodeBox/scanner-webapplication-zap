@@ -127,11 +127,6 @@ public class EngineWorkerJob implements JobRunnable {
 
         log.info("Grouped Urls by Base Url: {}", targetsGroupedByContext);
 
-        /* This loop searches through the list of targets belonging to one context looking for an include Regex and an
-           exclude regex to define the context of the zap scanner. It takes the first value found for each of the regexes
-           To ensure proper functionality of the scanner, all targets belonging to a context should have the same
-           include and exclude regexes
-         */
         for (String context : targetsGroupedByContext.keySet()) {
 
             List<Target> targets = targetsGroupedByContext.get(context);
@@ -143,7 +138,7 @@ public class EngineWorkerJob implements JobRunnable {
                 String result = executeScanner(target, contextId, userId);
 
                 if (!"{}".equals(result)) {  // Scanner didn't fail?
-                    addFindingsToResult(context, resultFindings, rawFindings, result);
+                    addFindingsToResult(target, resultFindings, rawFindings, result);
 
                 } else {
                     publisher.warn("Skipped target processing due to a missing ZAP scan result.");
@@ -152,6 +147,7 @@ public class EngineWorkerJob implements JobRunnable {
         }
 
         removeDuplicateScanResults(resultFindings);
+
         //Finish the scanner task and post findings to the engine
         completeTask(task, publisher, resultFindings, rawFindings, ZapTopic.ZAP_SCANNER);
     }
@@ -159,23 +155,22 @@ public class EngineWorkerJob implements JobRunnable {
     private String configureScannerContext(String context, List<Target> targets) throws ClientApiException {
 
         //Get configuration settings from the target
-        String includeRegex = null;
-        String excludeRegex = null;
+        List<String> includeRegexes = new LinkedList<>();
+        List<String> excludeRegexes = new LinkedList<>();
 
         for (Target target : targets) {
-            if (includeRegex == null) {
-                includeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_INCLUDE_REGEX.name());
+            String includeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_INCLUDE_REGEX.name());
+            if (includeRegex != null) {
+                includeRegexes.add(includeRegex);
             }
-            if (excludeRegex == null) {
-                excludeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_EXCLUDE_REGEX.name());
-            }
-            if (includeRegex != null && excludeRegex != null) {
-                break;
+            String excludeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_EXCLUDE_REGEX.name());
+            if (excludeRegex != null) {
+                excludeRegexes.add(excludeRegex);
             }
         }
 
         //Create a new Context for all the targets belonging to this context
-        return service.createContext(context, includeRegex, excludeRegex);
+        return service.createContext(context, includeRegexes, excludeRegexes);
     }
 
     /**
@@ -199,13 +194,14 @@ public class EngineWorkerJob implements JobRunnable {
             String excludeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_EXCLUDE_REGEX.name());
 
             //Create a new Context for each target
-            String contextId = service.createContext((String) target.getAttributes().get(ZapFields.ZAP_BASE_URL.name()), includeRegex, excludeRegex);
+            String contextId = service.createContext((String) target.getAttributes().get(ZapFields.ZAP_BASE_URL.name()),
+                    Collections.singletonList(includeRegex), Collections.singletonList(excludeRegex));
 
             String userId = configureAuthentication(target, contextId);
             String result = executeSpider(target, contextId, userId);
 
             if (!"{}".equals(result)) {  // Scanner didn't fail?
-                addFindingsToResult(target.getLocation(), resultFindings, rawFindings, result);
+                addFindingsToResult(target, resultFindings, rawFindings, result);
 
             } else {
                 publisher.warn("Skipped target processing due to a missing ZAP scan result.");
@@ -264,14 +260,14 @@ public class EngineWorkerJob implements JobRunnable {
         return service.retrieveScannerResult(scanId, target.getLocation());
     }
 
-    private void addFindingsToResult(String baseUrl, List<Finding> resultFindings, StringBuilder rawFindings, String result) {
-        //Combining results of all targets in one list
+    private void addFindingsToResult(final Target target, List<Finding> resultFindings, StringBuilder rawFindings, String result) {
+
         List<Finding> scannerResults = taskService.createFindings(result);
-        scannerResults.forEach(f -> f.getAttributes().put(ZapFields.ZAP_BASE_URL.name(), baseUrl));
+        scannerResults.forEach(f -> f.getAttributes().putAll(target.getAttributes()));
         resultFindings.addAll(scannerResults);
         rawFindings.append(result).append(",");
 
-        log.info("Scan Results for target {}: {}", baseUrl, resultFindings);
+        log.info("Scan Results for target {}: {}", target.getLocation(), resultFindings);
     }
 
     private void completeTask(ZapTask task, JobEventPublisher publisher, List<Finding> findings, StringBuilder rawFindings, ZapTopic zapTopic) throws ClientApiException {
