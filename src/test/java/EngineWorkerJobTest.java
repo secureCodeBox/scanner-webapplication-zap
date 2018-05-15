@@ -159,6 +159,22 @@ public class EngineWorkerJobTest {
         engineWorkerJob.execute(eventPublisher);
     }
 
+    @Test
+    public void testDuplicateRemovedWhenFinishedScanning() throws ClientApiException {
+        createScannerTask();
+        List<Finding> findings = createFindings();
+        String rawFindings = createRawFindingsWithDuplicate();
+        when(zapService.retrieveScannerResult(any(), any())).thenReturn(rawFindings);
+        when(taskService.createFindings(any())).thenCallRealMethod();
+        doAnswer((Answer) invocation -> {
+            List<Finding> result = (List<Finding>) invocation.getArguments()[1];
+            assertTrue(result.size() == findings.size() && result.containsAll(findings) && findings.containsAll(result));
+            return null;
+        }).when(taskService).completeTask(any(), any(), any(), any());
+
+        engineWorkerJob.execute(eventPublisher);
+    }
+
     private void createSpiderTask(){
 
         spiderTask = new ZapTask();
@@ -266,5 +282,62 @@ public class EngineWorkerJobTest {
                 "\"location\":\"http://yourOwnFaultToVisitMe.org\"" +
             "}" +
         "]";
+    }
+
+    private String createRawFindingsWithDuplicate() {
+        return
+                "[" +
+                        "{" +
+                        "\"id\":\"49bf7fd3-8512-4d73-a28f-608e493cd726\"," +
+                        "\"name\":\"Epic Finding\"," +
+                        "\"description\":\"I'm a Finding\"," +
+                        "\"category\":\"EPIC\"," +
+                        "\"reference\":" +
+                        "{" +
+                        "\"source\":\"http://theMostImportantSiteEver.org\"" +
+                        "}," +
+                        "\"attributes\":" +
+                        "{" +
+                        "\"BEER\":\"nice\"," +
+                        "\"NullpointerException\":\"Oh No!\"," +
+                        "\"ZAP_BASE_URL\":\"http://aSeriousUrl.com\"" +
+                        "}," +
+                        "\"location\":\"http://locationOfSecurityDeath.org\"" +
+                        "}," +
+                        "{" +
+                        "\"id\":\"49bf7fd3-8512-4d73-a28f-608e493cd726\"," +
+                        "\"name\":\"Epic Finding\"," +
+                        "\"description\":\"I'm a Finding\"," +
+                        "\"category\":\"EPIC\"," +
+                        "\"reference\":" +
+                        "{" +
+                        "\"source\":\"http://theMostImportantSiteEver.org\"" +
+                        "}," +
+                        "\"attributes\":" +
+                        "{" +
+                        "\"BEER\":\"nice\"," +
+                        "\"NullpointerException\":\"Oh No!\"," +
+                        "\"ZAP_BASE_URL\":\"http://aSeriousUrl.com\"" +
+                        "}," +
+                        "\"location\":\"http://locationOfSecurityDeath.org\"" +
+                        "}," +
+                        "{" +
+                        "\"id\":\"49bf7fd3-8512-4d73-a28f-608e493cd726\"," +
+                        "\"name\":\"More Epic Finding\"," +
+                        "\"description\":\"I'm the best Finding\"," +
+                        "\"category\":\"MASSIVE EPICNESS\"," +
+                        "\"reference\":" +
+                        "{" +
+                        "\"source\":\"http://dontlookatme.org\"" +
+                        "}," +
+                        "\"attributes\":" +
+                        "{" +
+                        "\"CAKE\":\"amazing\"," +
+                        "\"NullpointerException\":\"Oh No not again!\"," +
+                        "\"ZAP_BASE_URL\":\"http://aSeriousUrl.com\"" +
+                        "}," +
+                        "\"location\":\"http://yourOwnFaultToVisitMe.org\"" +
+                        "}" +
+                        "]";
     }
 }
