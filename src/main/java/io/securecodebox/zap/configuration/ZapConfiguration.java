@@ -44,6 +44,8 @@ public class ZapConfiguration {
     private String camundaPassword;
     private String spiderType;
     private String scannerType;
+    private boolean filterSpiderResults;
+    private boolean filterScannerResults;
 
 
     /**

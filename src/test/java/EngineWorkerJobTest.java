@@ -142,7 +142,7 @@ public class EngineWorkerJobTest {
      * @throws ClientApiException
      */
     @Test
-    public void testCorrectResults() throws ClientApiException{
+    public void testCorrectResultsWithoutDuplicates() throws ClientApiException{
 
         createSpiderTask();
         List<Finding> findings = createFindings();
@@ -164,13 +164,19 @@ public class EngineWorkerJobTest {
         engineWorkerJob.execute(eventPublisher);
     }
 
+    /**
+     * This is also the same for spider and scanner
+     * @throws ClientApiException
+     */
     @Test
     public void testDuplicateRemovedWhenFinishedScanning() throws ClientApiException {
+
         createScannerTask();
         List<Finding> findings = createFindings();
         String rawFindings = createRawFindingsWithDuplicate();
         when(zapService.retrieveScannerResult(any(), any())).thenReturn(rawFindings);
         when(taskService.createFindings(any())).thenCallRealMethod();
+        when(config.isFilterScannerResults()).thenReturn(true);
         doAnswer((Answer) invocation -> {
             List<Finding> result = (List<Finding>) invocation.getArguments()[1];
             assertTrue(result.size() == findings.size());

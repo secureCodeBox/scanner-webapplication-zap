@@ -107,6 +107,49 @@ public class EngineWorkerJob implements JobRunnable {
     }
 
     /**
+     * Perform spider tasks and post the result back to the engine
+     *
+     * @param publisher
+     * @param task      the task to be executed
+     * @throws ClientApiException
+     * @throws UnsupportedEncodingException
+     */
+    private void performSpiderTask(JobEventPublisher publisher, ZapTask task) throws ClientApiException, UnsupportedEncodingException {
+
+        List<Finding> resultFindings = new LinkedList<>();
+        StringBuilder rawFindings = new StringBuilder("[");
+
+        log.info("Starting Spider Task with targets: {}", task.getTargets());
+
+        for (Target target : task.getTargets()) {
+
+            String includeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_INCLUDE_REGEX.name());
+            String excludeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_EXCLUDE_REGEX.name());
+
+            //Create a new Context for each target
+            String contextId = service.createContext((String) target.getAttributes().get(ZapFields.ZAP_BASE_URL.name()),
+                    Collections.singletonList(includeRegex), Collections.singletonList(excludeRegex));
+
+            String userId = configureAuthentication(target, contextId);
+            String result = executeSpider(target, contextId, userId);
+
+            if (!"{}".equals(result)) {  // Scanner didn't fail?
+                addFindingsToResult(target, resultFindings, rawFindings, result);
+
+            } else {
+                publisher.warn("Skipped target processing due to a missing ZAP scan result.");
+            }
+        }
+
+        if(config.isFilterSpiderResults()) {
+            removeDuplicateScanResults(resultFindings);
+        }
+
+        //Finish the spider task and post findings to the engine
+        completeTask(task, publisher, resultFindings, rawFindings, ZapTopic.ZAP_SPIDER);
+    }
+
+    /**
      * Perform scanner tasks and post the result back to the engine
      *
      * @param publisher
@@ -146,10 +189,35 @@ public class EngineWorkerJob implements JobRunnable {
             }
         }
 
-        removeDuplicateScanResults(resultFindings);
+        if(config.isFilterScannerResults()) {
+            removeDuplicateScanResults(resultFindings);
+        }
 
         //Finish the scanner task and post findings to the engine
         completeTask(task, publisher, resultFindings, rawFindings, ZapTopic.ZAP_SCANNER);
+    }
+
+    private String executeSpider(Target target, String contextId, String userId) throws ClientApiException {
+
+
+        String spiderApiSpecUrl = (target.getAttributes().get(ZapFields.ZAP_SPIDER_API_SPEC_URL.name()) != null)
+                ?
+                config.getProcessEngineApiUrl() + "/rest/" + target.getAttributes().get(ZapFields.ZAP_SPIDER_API_SPEC_URL.name())
+                :
+                null;
+        Integer spiderMaxDepth = (Integer) target.getAttributes().get(ZapFields.ZAP_SPIDER_MAX_DEPTH.name());
+        spiderMaxDepth = (spiderMaxDepth != null) ? spiderMaxDepth : 1;
+        log.info("Start Spider with URL: " + target.getLocation());
+        String scanId = (String) service.startSpiderAsUser(target.getLocation(), spiderApiSpecUrl,
+                spiderMaxDepth, contextId, userId);
+        return service.retrieveSpiderResult(scanId);
+    }
+
+    private String executeScanner(Target target, String contextId, String userId) throws ClientApiException {
+        log.info("Start Scanner with URL: " + target.getLocation());
+        service.recallTarget(target);
+        String scanId = (String) service.startScannerAsUser(target.getLocation(), contextId, userId);
+        return service.retrieveScannerResult(scanId, target.getLocation());
     }
 
     private String configureScannerContext(String context, List<Target> targets) throws ClientApiException {
@@ -171,47 +239,6 @@ public class EngineWorkerJob implements JobRunnable {
 
         //Create a new Context for all the targets belonging to this context
         return service.createContext(context, includeRegexes, excludeRegexes);
-    }
-
-    /**
-     * Perform spider tasks and post the result back to the engine
-     *
-     * @param publisher
-     * @param task      the task to be executed
-     * @throws ClientApiException
-     * @throws UnsupportedEncodingException
-     */
-    private void performSpiderTask(JobEventPublisher publisher, ZapTask task) throws ClientApiException, UnsupportedEncodingException {
-
-        List<Finding> resultFindings = new LinkedList<>();
-        StringBuilder rawFindings = new StringBuilder("[");
-
-        log.info("Starting Spider Task with targets: {}", task.getTargets());
-
-        for (Target target : task.getTargets()) {
-
-            String includeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_INCLUDE_REGEX.name());
-            String excludeRegex = (String) target.getAttributes().get(ZapFields.ZAP_SCANNER_EXCLUDE_REGEX.name());
-
-            //Create a new Context for each target
-            String contextId = service.createContext((String) target.getAttributes().get(ZapFields.ZAP_BASE_URL.name()),
-                    Collections.singletonList(includeRegex), Collections.singletonList(excludeRegex));
-
-            String userId = configureAuthentication(target, contextId);
-            String result = executeSpider(target, contextId, userId);
-
-            if (!"{}".equals(result)) {  // Scanner didn't fail?
-                addFindingsToResult(target, resultFindings, rawFindings, result);
-
-            } else {
-                publisher.warn("Skipped target processing due to a missing ZAP scan result.");
-            }
-        }
-
-        removeDuplicateScanResults(resultFindings);
-
-        //Finish the spider task and post findings to the engine
-        completeTask(task, publisher, resultFindings, rawFindings, ZapTopic.ZAP_SPIDER);
     }
 
     private String configureAuthentication(Target target, String contextId) throws ClientApiException, UnsupportedEncodingException {
@@ -237,29 +264,6 @@ public class EngineWorkerJob implements JobRunnable {
         } else {
             return "-1";
         }
-    }
-
-    private String executeSpider(Target target, String contextId, String userId) throws ClientApiException {
-
-
-        String spiderApiSpecUrl = (target.getAttributes().get(ZapFields.ZAP_SPIDER_API_SPEC_URL.name()) != null)
-                ?
-                config.getProcessEngineApiUrl() + "/rest/" + target.getAttributes().get(ZapFields.ZAP_SPIDER_API_SPEC_URL.name())
-                :
-                null;
-        Integer spiderMaxDepth = (Integer) target.getAttributes().get(ZapFields.ZAP_SPIDER_MAX_DEPTH.name());
-        spiderMaxDepth = (spiderMaxDepth != null) ? spiderMaxDepth : 1;
-        log.info("Start Spider with URL: " + target.getLocation());
-        String scanId = (String) service.startSpiderAsUser(target.getLocation(), spiderApiSpecUrl,
-                spiderMaxDepth, contextId, userId);
-        return service.retrieveSpiderResult(scanId);
-    }
-
-    private String executeScanner(Target target, String contextId, String userId) throws ClientApiException {
-        log.info("Start Scanner with URL: " + target.getLocation());
-        service.recallTarget(target);
-        String scanId = (String) service.startScannerAsUser(target.getLocation(), contextId, userId);
-        return service.retrieveScannerResult(scanId, target.getLocation());
     }
 
     private void addFindingsToResult(final Target target, List<Finding> resultFindings, StringBuilder rawFindings, String result) {
