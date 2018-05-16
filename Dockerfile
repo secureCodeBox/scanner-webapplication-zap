@@ -19,6 +19,6 @@ EXPOSE 8080 8090
 
 ENV JAVA_OPTS ""
 
-# USER zap
+USER zap
 
 CMD ["/init.sh"]
