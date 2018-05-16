@@ -35,12 +35,10 @@ import java.util.UUID;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Reference {
 
-    @JsonProperty("id")
     private String id;
-    @JsonProperty("source")
     private String source;
 
-    public Reference(@JsonProperty(value = "source") String ref){
+    public Reference(String ref){
         id = UUID.randomUUID().toString();
         source = ref;
     }

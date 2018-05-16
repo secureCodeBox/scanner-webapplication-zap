@@ -94,6 +94,9 @@ public class ZapService implements StatusDetailIndicator {
     public String createContext(String targetUrl, List<String> contextIncludeRegex, List<String> contextExcludeRegex) throws ClientApiException {
         log.info("Starting to create a new ZAP session '{}' and context '{}'.", SESSION_NAME, CONTEXT_NAME);
 
+        contextIncludeRegex = contextIncludeRegex.stream().filter(Objects::nonNull).collect(Collectors.toList());
+        contextExcludeRegex = contextExcludeRegex.stream().filter(Objects::nonNull).collect(Collectors.toList());
+
         if(contextIncludeRegex == null){
             contextIncludeRegex = new LinkedList<>();
         }
@@ -110,11 +113,13 @@ public class ZapService implements StatusDetailIndicator {
         Context context = new Context(api);
         String contextId = getSingleResult(context.newContext(CONTEXT_NAME));
         for(String regex : contextIncludeRegex){
-            context.includeInContext(contextId, regex);
+            if(regex != null && !regex.isEmpty()) {
+                context.includeInContext(CONTEXT_NAME, regex);
+            }
         }
 
         for(String regex : contextExcludeRegex){
-            context.excludeFromContext(contextId, regex);
+            context.excludeFromContext(CONTEXT_NAME, regex);
         }
 
         api.sessionManagement.setSessionManagementMethod(contextId, "cookieBasedSessionManagement", null);

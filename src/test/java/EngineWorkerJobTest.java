@@ -252,10 +252,7 @@ public class EngineWorkerJobTest {
                 "\"name\":\"Epic Finding\"," +
                 "\"description\":\"I'm a Finding\"," +
                 "\"category\":\"EPIC\"," +
-                "\"reference\":" +
-                "{" +
-                    "\"source\":\"http://theMostImportantSiteEver.org\"" +
-                "}," +
+                "\"reference\":\"http://theMostImportantSiteEver.org\"," +
                 "\"attributes\":" +
                 "{" +
                     "\"BEER\":\"nice\"," +
@@ -269,10 +266,7 @@ public class EngineWorkerJobTest {
                 "\"name\":\"More Epic Finding\"," +
                 "\"description\":\"I'm the best Finding\"," +
                 "\"category\":\"MASSIVE EPICNESS\"," +
-                "\"reference\":" +
-                "{" +
-                    "\"source\":\"http://dontlookatme.org\"" +
-                "}," +
+                "\"reference\":\"http://dontlookatme.org\"," +
                 "\"attributes\":" +
                 "{" +
                     "\"CAKE\":\"amazing\"," +
@@ -292,10 +286,7 @@ public class EngineWorkerJobTest {
                         "\"name\":\"Epic Finding\"," +
                         "\"description\":\"I'm a Finding\"," +
                         "\"category\":\"EPIC\"," +
-                        "\"reference\":" +
-                        "{" +
-                        "\"source\":\"http://theMostImportantSiteEver.org\"" +
-                        "}," +
+                        "\"reference\":\"http://theMostImportantSiteEver.org\"," +
                         "\"attributes\":" +
                         "{" +
                         "\"BEER\":\"nice\"," +
@@ -309,10 +300,7 @@ public class EngineWorkerJobTest {
                         "\"name\":\"Epic Finding\"," +
                         "\"description\":\"I'm a Finding\"," +
                         "\"category\":\"EPIC\"," +
-                        "\"reference\":" +
-                        "{" +
-                        "\"source\":\"http://theMostImportantSiteEver.org\"" +
-                        "}," +
+                        "\"reference\":\"http://theMostImportantSiteEver.org\"," +
                         "\"attributes\":" +
                         "{" +
                         "\"BEER\":\"nice\"," +
@@ -326,10 +314,7 @@ public class EngineWorkerJobTest {
                         "\"name\":\"More Epic Finding\"," +
                         "\"description\":\"I'm the best Finding\"," +
                         "\"category\":\"MASSIVE EPICNESS\"," +
-                        "\"reference\":" +
-                        "{" +
-                        "\"source\":\"http://dontlookatme.org\"" +
-                        "}," +
+                        "\"reference\": \"http://dontlookatme.org\"," +
                         "\"attributes\":" +
                         "{" +
                         "\"CAKE\":\"amazing\"," +

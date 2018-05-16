@@ -54,6 +54,7 @@ public class Finding {
     private String location;
     private Map<String, Object> attributes = new HashMap<>();
 
+    //todo: to also remove duplicates from spider, the relevant attributes for the spider must be added here
     private static final List<String> RELEVANT_ATTRIBUTES = Arrays.asList(ZapFields.ZAP_BASE_URL.name(),
             "alert", "attack", "confidence", "evidence", "other", "param", "reliability");
 

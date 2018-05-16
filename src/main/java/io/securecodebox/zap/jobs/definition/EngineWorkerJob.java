@@ -277,7 +277,7 @@ public class EngineWorkerJob implements JobRunnable {
         }
         rawFindings.append("]");
         CompleteTask completedTask = taskService.completeTask(task, findings, rawFindings.toString(), zapTopic);
-        publisher.info("Completed" + ((zapTopic == ZapTopic.ZAP_SCANNER) ?  "scanner" : "spider") + "task: " + completedTask);
+        publisher.info("Completed " + ((zapTopic == ZapTopic.ZAP_SCANNER) ?  "scanner" : "spider") + " task: " + completedTask);
 
         service.clearSession();
     }
