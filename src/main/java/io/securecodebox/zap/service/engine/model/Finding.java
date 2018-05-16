@@ -54,10 +54,6 @@ public class Finding {
     private String location;
     private Map<String, Object> attributes = new HashMap<>();
 
-    //todo: to also remove duplicates from spider, the relevant attributes for the spider must be added here
-    private static final List<String> RELEVANT_ATTRIBUTES = Arrays.asList(ZapFields.ZAP_BASE_URL.name(),
-            "alert", "attack", "confidence", "evidence", "other", "param", "reliability");
-
     @JsonAnySetter
     public void handleUnknownProperty(String key, String value){
         attributes.put(key, value);
@@ -73,54 +69,5 @@ public class Finding {
 
     public String getSeverity() {
         return severity != null ? severity.toUpperCase() : "INFORMATIONAL";
-    }
-
-
-    @Override
-    public boolean equals(Object o) {
-        if(this == o) {
-            return true;
-        }
-        if(o == null){
-            return false;
-        }
-        if(!(o instanceof Finding)){
-            return false;
-        }
-
-        for(String s : RELEVANT_ATTRIBUTES){
-            if(!equalsOrNull(this.getAttributes().get(s), ((Finding)o).getAttributes().get(s))){
-                return false;
-            }
-        }
-        return equalsOrNull(this.getCategory(), ((Finding) o).getCategory()) &&
-                equalsOrNull(this.getDescription(), ((Finding) o).getDescription()) &&
-                equalsOrNull(this.getHint(), ((Finding) o).getHint()) &&
-                equalsOrNull(this.getLocation(), ((Finding) o).getLocation()) &&
-                equalsOrNull(this.getName(), ((Finding) o).getName()) &&
-                ((this.getReference() != null && ((Finding) o).getReference() != null &&
-                        equalsOrNull(this.getReference().getSource(), ((Finding) o).getReference().getSource())) ||
-                        (this.getReference() == null && ((Finding) o).getReference() == null)) &&
-                equalsOrNull(this.getOsiLayer(), ((Finding) o).getOsiLayer()) &&
-                equalsOrNull(this.getSeverity(), ((Finding) o).getSeverity());
-    }
-
-    private static boolean equalsOrNull(Object o1, Object o2){
-        if(o1 == null){
-            return o2 == null;
-        }
-        else {
-            return o2 != null && o1.equals(o2);
-        }
-    }
-
-    @Override
-    public int hashCode() {
-
-        List<Object> objects = new LinkedList<>();
-        for(String s : RELEVANT_ATTRIBUTES){
-            objects.add(getAttributes().get(s));
-        }
-        return Objects.hash(name, description, category, osiLayer, severity, reference.getSource(), hint, location, objects);
     }
 }

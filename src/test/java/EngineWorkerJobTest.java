@@ -40,11 +40,10 @@ import org.mockito.stubbing.Answer;
 import org.zaproxy.clientapi.core.ClientApiException;
 
 import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
@@ -152,7 +151,13 @@ public class EngineWorkerJobTest {
         when(taskService.createFindings(any())).thenCallRealMethod();
         doAnswer((Answer) invocation -> {
             List<Finding> result = (List<Finding>) invocation.getArguments()[1];
-            assertTrue(result.size() == findings.size() && result.containsAll(findings) && findings.containsAll(result));
+            assertTrue(result.size() == findings.size());
+            assertTrue(result.stream().map(Finding::getLocation).collect(Collectors.toList()).containsAll(
+                    findings.stream().map(Finding::getLocation).collect(Collectors.toList())
+            ));
+            assertTrue(findings.stream().map(Finding::getLocation).collect(Collectors.toList()).containsAll(
+                    result.stream().map(Finding::getLocation).collect(Collectors.toList())
+            ));
             return null;
         }).when(taskService).completeTask(any(), any(), any(), any());
 
@@ -168,11 +173,78 @@ public class EngineWorkerJobTest {
         when(taskService.createFindings(any())).thenCallRealMethod();
         doAnswer((Answer) invocation -> {
             List<Finding> result = (List<Finding>) invocation.getArguments()[1];
-            assertTrue(result.size() == findings.size() && result.containsAll(findings) && findings.containsAll(result));
+            assertTrue(result.size() == findings.size());
+            assertTrue(result.stream().map(Finding::getLocation).collect(Collectors.toList()).containsAll(
+                    findings.stream().map(Finding::getLocation).collect(Collectors.toList())
+            ));
+            assertTrue(findings.stream().map(Finding::getLocation).collect(Collectors.toList()).containsAll(
+                    result.stream().map(Finding::getLocation).collect(Collectors.toList())
+            ));
             return null;
         }).when(taskService).completeTask(any(), any(), any(), any());
 
         engineWorkerJob.execute(eventPublisher);
+    }
+
+    @Test
+    public void testDuplicateRemovalShouldEliminateDuplicates(){
+
+        Finding f = new Finding();
+        f.getAttributes().put("alert", "XSS");
+        f.setLocation("http://xss.org?x=1&q=2");
+
+        Finding f1 = new Finding();
+        f1.getAttributes().put("alert", "XSS");
+        f1.setLocation("http://xss.org?x=3&q=2");
+
+        Finding f2 = new Finding();
+        f2.getAttributes().put("alert", "XSS");
+        f2.setLocation("http://xss.org?x=1&q=1");
+
+        Finding f3 = new Finding();
+        f3.getAttributes().put("alert", "SQL");
+        f3.setLocation("http://xss.org?x=1&q=2");
+
+        Finding f4 = new Finding();
+        f4.getAttributes().put("alert", "XSS");
+        f4.setLocation("http://xss2.org?x=1&q=2");
+
+        Finding f5 = new Finding();
+        f5.getAttributes().put("alert", "XSRF");
+        f5.setLocation("http://xsrf.org?x=1");
+
+        List<Finding> findings = new LinkedList<>(Arrays.asList(f, f1, f2, f3, f4, f5));
+        List<Finding> uniqueFindings = new LinkedList<>(Arrays.asList(f, f3, f4, f5));
+
+        assert (findings.size() == 6);
+        EngineWorkerJob.removeDuplicateScanResults(findings);
+
+        assertTrue(findings.size() == 4);
+        assertTrue(findings.containsAll(uniqueFindings));
+        assertFalse(findings.contains(f2));
+    }
+
+    @Test
+    public void duplicateRemovalWithEmptyListShouldDoNothing(){
+        List<Finding> findings = new LinkedList<>();
+
+        EngineWorkerJob.removeDuplicateScanResults(findings);
+        assertTrue(findings.size() == 0);
+    }
+
+    @Test
+    public void duplicateRemovalWithoutAlertsShouldWork(){
+
+        Finding f = new Finding();
+        f.setLocation("http://x.org?x=1&q=2");
+
+        Finding f1 = new Finding();
+        f1.setLocation("http://x.org?x=234&q=34543");
+
+        List<Finding> findings = new LinkedList<>(Arrays.asList(f, f1));
+
+        EngineWorkerJob.removeDuplicateScanResults(findings);
+        assertTrue(findings.size() == 1);
     }
 
     private void createSpiderTask(){

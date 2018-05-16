@@ -208,6 +208,8 @@ public class EngineWorkerJob implements JobRunnable {
             }
         }
 
+        removeDuplicateScanResults(resultFindings);
+
         //Finish the spider task and post findings to the engine
         completeTask(task, publisher, resultFindings, rawFindings, ZapTopic.ZAP_SPIDER);
     }
@@ -284,7 +286,20 @@ public class EngineWorkerJob implements JobRunnable {
 
     public static void removeDuplicateScanResults(List<Finding> findings){
 
-        Set<Finding> findingSet = new HashSet<>(findings);
+        if(findings == null){
+            return;
+        }
+
+        Set<String> uniqueUrls = new HashSet<>();
+
+        Set<Finding> findingSet = new HashSet<>();
+        for(Finding f : findings){
+            String uniqueUrl = f.getLocation().replaceAll("(?:=)[^&]*", "=") + "_" + f.getAttributes().get("alert");
+            if(!uniqueUrls.contains(uniqueUrl)){
+                uniqueUrls.add(uniqueUrl);
+                findingSet.add(f);
+            }
+        }
         findings.clear();
         findings.addAll(findingSet);
     }
