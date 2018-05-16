@@ -3,31 +3,22 @@ USER root
 COPY . .
 RUN gradle clean build
 
-FROM owasp/zap2docker-stable
+FROM owasp/zap2docker-bare
 
-USER root
-
-RUN apt-get update && apt-get upgrade -y && apt-get install -y openjdk-8-jdk supervisor python-pip && apt-get clean
-RUN pip install supervisor-stdout
-
-COPY dockerfiles/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY dockerfiles/init.sh /init.sh
 COPY dockerfiles/csrfAuthScript.js /zap/scripts/templates/authentication/csrfAuthScript.js
 COPY --from=builder /home/gradle/build/libs/scanner-webapplication-zap-0.4.0-SNAPSHOT.jar /app.jar
 
+USER root
+
 RUN chown zap:zap /app.jar && \
-    chown zap:zap /usr/bin/supervisord && \
-    chown zap:zap /var/log/supervisor && \
-    touch /zap/supervisord.sock && \
-    chown zap:zap /zap/supervisord.sock && \
-    chmod -R g+r /var/log/supervisor && \
-    chmod -R g+w /var/log/supervisor && \
-    chmod -R 777 /var/log/supervisor
+    chmod +x /init.sh && \
+    chown zap:zap /init.sh
 
 EXPOSE 8080 8090
 
 ENV JAVA_OPTS ""
 
-USER zap
+# USER zap
 
-ENTRYPOINT ["/usr/bin/supervisord"]
-CMD []
+CMD ["/init.sh"]
