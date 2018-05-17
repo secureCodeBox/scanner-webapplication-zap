@@ -11,7 +11,7 @@ COPY --from=builder /home/gradle/build/libs/scanner-webapplication-zap-0.4.0-SNA
 
 USER root
 RUN chmod +x /zap/init.sh
-USER zap
+USER 1000 
 
 EXPOSE 8080 8090
 
