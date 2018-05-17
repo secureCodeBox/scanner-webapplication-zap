@@ -4,4 +4,4 @@
 
 sleep 5
 
-java -Djava.security.egd=file:/dev/./urandom -Xmx512m -jar /zap/app.jar
+java -Djava.security.egd=file:/dev/./urandom -Xmx512m -jar /home/zap/app.jar
