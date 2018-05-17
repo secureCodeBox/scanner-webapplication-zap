@@ -10,8 +10,11 @@ COPY dockerfiles/csrfAuthScript.js /zap/scripts/templates/authentication/csrfAut
 COPY --from=builder /home/gradle/build/libs/scanner-webapplication-zap-0.4.0-SNAPSHOT.jar /zap/app.jar
 
 USER root
-RUN chmod +x /zap/init.sh
-USER 1000 
+RUN chmod +x /zap/init.sh && \
+    chgrp -R 0 /home/zap/ && \
+    chmod -R g=u /home/zap/
+
+USER zap
 
 EXPOSE 8080 8090
 
