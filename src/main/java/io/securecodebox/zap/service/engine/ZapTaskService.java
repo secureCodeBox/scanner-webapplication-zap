@@ -64,6 +64,13 @@ public class ZapTaskService extends TaskService {
         return task;
     }
 
+    public void reportFailure(Exception exception, ZapTask zapTask){
+
+        ScanFailure failure = new ScanFailure(config.getAppId(), zapTask.getJobId(), exception.getMessage(), exception.getCause().toString());
+
+        taskApiClient.reportFailure(failure);
+    }
+
     public List<Finding> createFindings(String zapResult) {
 
         ObjectMapper objectMapper = new ObjectMapper();

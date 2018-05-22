@@ -24,6 +24,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.model.CompleteTask;
+import io.securecodebox.zap.service.engine.model.ScanFailure;
 import io.securecodebox.zap.service.engine.model.zap.ZapTask;
 import io.securecodebox.zap.service.engine.model.zap.ZapTopic;
 import io.securecodebox.zap.util.BasicAuthRestTemplate;
@@ -124,6 +125,23 @@ public class EngineTaskApiClient {
         } else {
             log.error(String.format("Couldn't complete the task: %s, the return code is: %s with result: %s", task.getJobId(), statusCode, completedTask.getBody()));
         }
+    }
+
+    void reportFailure(ScanFailure failure) {
+
+        String url = config.getProcessEngineApiUrl() + "/box/jobs/" + failure.getJobId() + "/failure";
+
+        ResponseEntity<String> completedTask = restTemplate.postForEntity(url, failure, String.class);
+        log.info(String.format("Reported failure: %s", failure));
+
+        HttpStatus statusCode = completedTask.getStatusCode();
+
+        if (statusCode.is2xxSuccessful()) {
+            log.info(String.format("Successfully reported the failure: %s: ", failure));
+        } else {
+            log.error(String.format("Error reporting failure: %s, the return code is: %s with result: %s", failure, statusCode, completedTask.getBody()));
+        }
+
     }
 
 

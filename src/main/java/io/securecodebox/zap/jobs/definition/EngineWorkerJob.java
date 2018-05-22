@@ -81,29 +81,43 @@ public class EngineWorkerJob implements JobRunnable {
         //fetch and lock tasks
         ZapTask spiderTask = taskService.getTask(ZapTopic.ZAP_SPIDER);
         ZapTask scannerTask = taskService.getTask(ZapTopic.ZAP_SCANNER);
-        try {
 
             //if there is a spider task available
             if (spiderTask != null) {
                 publisher.info(String.format("Fetched spider task: %s", spiderTask.toString()));
 
                 //execute the spider task
-                performSpiderTask(publisher, spiderTask);
+                try{
+                    performSpiderTask(publisher, spiderTask);
+                }
+                catch (ClientApiException | RuntimeException e) {
+                    log.error("Job execution error!", e);
+                    taskService.reportFailure(e, spiderTask);
+                }
+                catch (UnsupportedEncodingException e) {
+                    log.error("Couldn't define session management!", e);
+                    taskService.reportFailure(e, spiderTask);
+                }
             } else {
                 publisher.info("No spider tasks fetched.");
             }
 
             if (scannerTask != null) {
                 publisher.info(String.format("Fetched scanner task: %s", scannerTask.toString()));
+                try{
                 performScannerTask(publisher, scannerTask);
+                }
+                catch (ClientApiException | RuntimeException e) {
+                    log.error("Job execution error!", e);
+                    taskService.reportFailure(e, scannerTask);
+                }
+                catch (UnsupportedEncodingException e) {
+                    log.error("Couldn't define session management!", e);
+                    taskService.reportFailure(e, scannerTask);
+                }
             } else {
                 publisher.info("No scanner tasks fetched.");
             }
-        } catch (ClientApiException | RuntimeException e) {
-            log.error("Job execution error!", e);
-        } catch (UnsupportedEncodingException e) {
-            log.error("Couldn't define session management!", e);
-        }
     }
 
     /**
