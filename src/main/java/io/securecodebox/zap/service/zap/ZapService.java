@@ -488,4 +488,8 @@ public class ZapService implements StatusDetailIndicator {
             return StatusDetail.statusDetail(getClass().getSimpleName(), Status.ERROR, e.getMessage());
         }
     }
+
+    public String getVersion() throws ClientApiException {
+        return getSingleResult(api.core.version());
+    }
 }

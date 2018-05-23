@@ -86,7 +86,6 @@ public class ZapTaskService extends TaskService {
 
 
     @Override
-    //todo: Do we need this?
     public StatusDetail statusDetail() {
         try {
             int taskCountByTopic = getZapTaskCountByTopic(ZapTopic.ZAP_SCANNER);
