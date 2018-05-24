@@ -11,6 +11,8 @@ COPY --from=builder /home/gradle/build/libs/scanner-webapplication-zap-0.4.0-SNA
 
 USER root
 
+RUN chmod g+w /etc/passwd
+
 RUN apk add --update ca-certificates openssl
 RUN chmod +x /home/zap/init.sh && \
     chgrp -R 0 /home/zap/ && \
