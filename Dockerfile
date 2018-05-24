@@ -14,7 +14,8 @@ USER root
 RUN apk add --update ca-certificates openssl
 RUN chmod +x /home/zap/init.sh && \
     chgrp -R 0 /home/zap/ && \
-    chmod -R g=u /home/zap/
+    chmod -R g=u /home/zap/ && \
+    chown -R zap /home/zap
 
 USER zap
 
