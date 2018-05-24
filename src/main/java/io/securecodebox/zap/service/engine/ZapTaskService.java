@@ -66,9 +66,11 @@ public class ZapTaskService extends TaskService {
 
     public void reportFailure(Exception exception, ZapTask zapTask){
 
-        ScanFailure failure = new ScanFailure(config.getAppId(), zapTask.getJobId(), exception.getMessage(), exception.getCause().toString());
+        if(exception != null) {
+            ScanFailure failure = new ScanFailure(config.getAppId(), zapTask.getJobId(), exception.getMessage(), "Cause: " + exception.getCause());
 
-        taskApiClient.reportFailure(failure);
+            taskApiClient.reportFailure(failure);
+        }
     }
 
     public List<Finding> createFindings(String zapResult) {
