@@ -42,9 +42,10 @@ public class Finding {
     private UUID uuid;
     private String name;
     private String description;
+    @JsonAlias("alert")
     private String category;
     @JsonProperty(value = "osi_layer", required = false)
-    private String osiLayer;
+    private String osiLayer = "APPLICATION";
     @JsonAlias("risk")
     private String severity;
     private Reference reference;
