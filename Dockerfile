@@ -1,7 +1,16 @@
 FROM gradle:alpine as builder
 USER root
 COPY . .
-RUN gradle clean build
+
+ARG COMMIT_ID=unkown
+ARG BRANCH=unkown
+ARG REPOSITORY_URL=unkown
+
+ENV SCB_COMMIT_ID ${COMMIT_ID}
+ENV SCB_BRANCH ${BRANCH}
+ENV SCB_REPOSITORY_URL ${REPOSITORY_URL}
+
+RUN gradle clean build -Pvcs_commit=${SCB_COMMIT_ID} -Pvcs_version=${SCB_BRANCH} -Pvcs_url=${SCB_REPOSITORY_URL}
 
 FROM owasp/zap2docker-bare
 

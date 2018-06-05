@@ -13,7 +13,7 @@ cache:
 
 script:
   - echo -en "travis_fold:start:Docker_Build\r"
-  - docker build -t securecodebox/zap:oss .
+  - docker build -t securecodebox/zap:oss --build-arg=COMMIT_ID=$TRAVIS_COMMIT --build-arg=BRANCH=$TRAVIS_BRANCH --build-arg=REPOSITORY_URL="https://github.com/secureCodeBox/scanner-webapplication-zap" .
   - echo -en "travis_fold:end:Docker_Build\r"
   - docker images
 

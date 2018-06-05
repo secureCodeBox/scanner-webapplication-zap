@@ -56,13 +56,10 @@ jar {
 }
 
 // Passing the active profile information in the case of a simple "gradle bootRun".
-// Thanks to: https://github.com/spring-projects/spring-boot/pull/592https://github.com/spring-projects/spring-boot/pull/592
-bootRun {
-    systemProperties['spring.profiles.active'] = project.gradle.startParameter.systemPropertiesArgs['spring.profiles.active']
-    systemProperties['spring.application.json'] = project.gradle.startParameter.systemPropertiesArgs['spring.application.json']
-}
+// Thanks to: https://github.com/spring-projects/spring-boot/pull/592
+bootRun.systemProperties = System.properties
 
-// File filtering and token replacement. Variables are defined in "gradle.properties" file and can be overridden e.g. via "-Pvcs_commit=${bamboo.repository.revision.number}".
+// File filtering and token replacement. Variables are defined in "gradle.properties" file and can be overridden e.g. via "-Pvcs_commit=${repository.revision.number}".
 // Thanks to: https://docs.gradle.org/current/userguide/build_environment.html
 import org.apache.tools.ant.filters.ReplaceTokens
 
