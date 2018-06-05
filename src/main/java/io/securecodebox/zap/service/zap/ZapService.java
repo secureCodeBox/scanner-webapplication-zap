@@ -64,6 +64,7 @@ import static java.util.Collections.singletonMap;
 @Slf4j
 @ToString
 public class ZapService implements StatusDetailIndicator {
+
     private static final String SESSION_NAME = "secureCodeBoxSession";
     private static final String CONTEXT_NAME = "secureCodeBoxContext";
     private static final String AUTH_USER = "Testuser";
@@ -473,15 +474,20 @@ public class ZapService implements StatusDetailIndicator {
     }
 
 
+    /**
+     * This status checks if the configured ZAP API is reachable and returning a API result.
+     * @return
+     */
     @Override
     public StatusDetail statusDetail() {
         try {
-            String v = getSingleResult(api.core.version());
-            if (v != null && !v.isEmpty() && v.contains("version")) {
+            String version = this.getVersion();
+
+            if (version != null && !version.isEmpty()) {
                 log.debug("Internal status check: ok");
-                return StatusDetail.statusDetail(getClass().getSimpleName(), Status.OK, "up and running", singletonMap("ZAP Version", v));
+                return StatusDetail.statusDetail("ZAP API", Status.OK, "The ZAP API is up and running", singletonMap("ZAP Version", version));
             } else {
-                return StatusDetail.statusDetail(getClass().getSimpleName(), Status.WARNING, "Warning");
+                return StatusDetail.statusDetail("ZAP API", Status.WARNING, "Warning, couldn't find any ZAP version information's. Propably an error occurred!");
             }
         } catch (ClientApiException e) {
             log.debug("Error: indicating a status problem!", e);

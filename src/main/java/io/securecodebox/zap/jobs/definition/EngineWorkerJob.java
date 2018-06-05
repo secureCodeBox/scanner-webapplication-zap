@@ -321,6 +321,4 @@ public class EngineWorkerJob implements JobRunnable {
         findings.clear();
         findings.addAll(findingSet);
     }
-
-
 }

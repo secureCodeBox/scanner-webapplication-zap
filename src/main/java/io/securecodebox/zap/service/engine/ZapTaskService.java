@@ -47,10 +47,6 @@ public class ZapTaskService extends TaskService {
     @Autowired
     protected ZapConfiguration config;
 
-    public int getZapTaskCountByTopic(ZapTopic topicName) {
-        return taskApiClient.getTaskCountByTopic(topicName);
-    }
-
     public ZapTask getTask(ZapTopic zapTopic){
         return taskApiClient.fetchAndLockTask(zapTopic, config.getAppId());
     }
@@ -86,20 +82,25 @@ public class ZapTaskService extends TaskService {
         return new LinkedList<>();
     }
 
+    public boolean isApiAvailable() {
+        return this.taskApiClient.isApiAvailable();
+    }
+
 
     @Override
     public StatusDetail statusDetail() {
         try {
-            int taskCountByTopic = getZapTaskCountByTopic(ZapTopic.ZAP_SCANNER);
-            if (taskCountByTopic >= 0) {
+            boolean isApiAvailable = this.isApiAvailable();
+
+            if (isApiAvailable) {
                 log.debug("Internal health check: OK");
-                return StatusDetail.statusDetail("TaskService ZAP scanner", Status.OK, "up and running", singletonMap("Open ZAP Scanner tasks", String.valueOf(taskCountByTopic)));
+                return StatusDetail.statusDetail("Engine SCB API", Status.OK, "The Engine API is up and running", singletonMap("Deployed Processes", String.valueOf(this.taskApiClient.countProcesses())));
             } else {
-                return StatusDetail.statusDetail("TaskService ZAP scanner", Status.WARNING, "Couldn't find any ZAP scanner task", singletonMap("Open tasks", String.valueOf(taskCountByTopic)));
+                return StatusDetail.statusDetail("Engine SCB API", Status.WARNING, "Couldn't reach the Engine API!");
             }
         } catch (RuntimeException e) {
             log.debug("Error: Indicating a health problem!", e);
-            return StatusDetail.statusDetail("TaskService ZAP Scanner", Status.ERROR, e.getMessage());
+            return StatusDetail.statusDetail("Engine SCB API", Status.ERROR, "Couldn't reach the Engine API: "+ e.getMessage());
         }
     }
 }

@@ -21,6 +21,7 @@
 package io.securecodebox.zap.health;
 
 import io.securecodebox.zap.service.zap.ZapService;
+import io.securecodebox.zap.togglz.ZapFeature;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,15 +49,20 @@ public class ZapHealthIndicator implements HealthIndicator {
 
     @Override
     public Health health() {
-        try {
-            if (service.getVersion().contains("version")) {
-                log.info("Internal health check: OK");
-                return up().build();
-            } else {
-                return down().build();
+        if (ZapFeature.DISABLE_COMPLETE_HEALTH_CHECKS.isActive()) {
+            return up().build();
+        } else {
+            try {
+                if (!service.getVersion().isEmpty()) {
+                    log.debug("Internal ZAP API Health check is: OK");
+                    return up().build();
+                } else {
+                    return down().build();
+                }
+            } catch (ClientApiException e) {
+                log.error("Error: Indicating a ZAP API health problem!", e);
+                return down(e).build();
             }
-        } catch (ClientApiException e) {
-            return down(e).build();
         }
     }
 }

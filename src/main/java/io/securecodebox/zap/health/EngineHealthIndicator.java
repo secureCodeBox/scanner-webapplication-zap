@@ -42,7 +42,7 @@ import static org.springframework.boot.actuate.health.Health.up;
 @ConditionalOnProperty(prefix = "securecodebox.zap.processEngine.healthcheck", name = "enabled", havingValue = "true", matchIfMissing = true)
 @Slf4j
 @ToString
-public class SecureBoxEngineHealthIndicator implements HealthIndicator {
+public class EngineHealthIndicator implements HealthIndicator {
     @Autowired
     private ZapTaskService service;
 
@@ -53,14 +53,14 @@ public class SecureBoxEngineHealthIndicator implements HealthIndicator {
             return up().build();
         } else {
             try {
-                if (service.getZapTaskCountByTopic(ZapTopic.ZAP_SCANNER) >= 0) {
-                    log.info("Internal health check: OK");
+                if (service.isApiAvailable()) {
+                    log.debug("Internal engine API health check is: OK");
                     return up().build();
                 } else {
                     return down().build();
                 }
             } catch (RuntimeException e) {
-                log.error("Error: Indicating a health problem!", e);
+                log.error("Error: Indicating a engine API health problem!", e);
                 return down().build();
             }
         }

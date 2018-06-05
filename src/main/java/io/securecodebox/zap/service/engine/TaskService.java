@@ -28,7 +28,9 @@ import org.springframework.stereotype.Service;
 
 
 /**
- * Responsible for task handling with the process engine. The Camunda process engine is the owner of all tasks and processes. The external task API {@link EngineTaskApiClient} to retrieve new tasks and complete work.
+ * Responsible for task handling with the process engine.
+ * The Camunda process engine is the owner of all tasks and processes.
+ * The external task API {@link EngineTaskApiClient} to retrieve new tasks and complete work.
  */
 @Service
 @Slf4j

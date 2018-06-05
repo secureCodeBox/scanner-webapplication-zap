@@ -97,6 +97,35 @@ public class EngineTaskApiClient {
         }
     }
 
+    /**
+     * Returns true if the configured SCB Engine API is available and at least one processModell is deployed.
+     * @return
+     */
+    boolean isApiAvailable() {
+        return (this.countProcesses() > 0);
+    }
+
+    /**
+     * Returns the number of currently deployed process models which are available at the SCB Engine.
+     * @return
+     */
+    int countProcesses() {
+
+        String url = config.getProcessEngineApiUrl() + "/box/processes/";
+        log.debug("Call countProcesses() via {}", url);
+
+        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+        log.debug(String.format("Result for countProcesses(): %s", response));
+
+        if (response.getStatusCode().is2xxSuccessful() && response.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_JSON) && !response.toString().isEmpty()) {
+            return response.toString().split("id").length;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
     ZapTask fetchAndLockTask(ZapTopic zapTopic, String jobId) {
         String url = config.getProcessEngineApiUrl() + "/box/jobs/lock/" + zapTopic.getName() + "/" + jobId;
         log.info(String.format("Trying to fetch task for the topic: %s via %s", zapTopic, url));
