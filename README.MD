@@ -1,7 +1,13 @@
 ![Build Status](https://travis-ci.com/secureCodeBox/scanner-webapplication-zap.svg?token=2Rsf2E9Bq3FduSxRf6tz&branch=develop)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Known Vulnerabilities](https://snyk.io/test/github/secureCodeBox/scanner-webapplication-zap/badge.svg)](https://snyk.io/test/github/secureCodeBox/scanner-webapplication-zap)
 
+# About
+This repository contains a self contained µService utilizing the OWASP ZAP Proxy scanner for the secureCodeBox Application.
+
+Further Documentation:
+* [Project Description][scb-project]
+* [Developer Guide][scb-developer-guide]
+* [User Guide][scb-user-guide]
 
 # How to build and start the Zap Webapplication Scanner
 
@@ -17,4 +23,10 @@ By default the scanprocess gets started automatically with the startup of the se
 
 ## Build with docker
 
-To build the docker container run: docker build -t CONTAINER_NAME:LABEL .
+To build the docker container run: `docker build -t CONTAINER_NAME:LABEL .`
+
+
+[scb-project]:              https://github.com/secureCodeBox/secureCodeBox
+[scb-developer-guide]:      https://github.com/secureCodeBox/secureCodeBox/blob/develop/docs/developer-guide/README.md
+[scb-developer-guidelines]: https://github.com/secureCodeBox/secureCodeBox/blob/develop/docs/developer-guide/README.md#guidelines
+[scb-user-guide]:           https://github.com/secureCodeBox/secureCodeBox/tree/develop/docs/user-guide
