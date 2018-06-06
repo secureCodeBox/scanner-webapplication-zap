@@ -1,8 +1,10 @@
-# SecureBox Individual Contributor License Agreement
+# SecureCodeBox Individual Contributor License Agreement
 
-Thank you for your interest in contributing to SecureBox ("We" or "Us").
+Thank you for your interest in contributing to SecureCodeBox ("We" or "Us").
 
-This contributor agreement ("Agreement") documents the rights granted by contributors to Us. To make this document effective, please sign it and send it to Us by email, following the instructions at . This is a legally binding document, so please read it carefully before agreeing to it. The Agreement may cover more than one software project managed by Us.
+This contributor agreement ("Agreement") documents the rights granted by contributors to Us. This is a legally binding document, so please read it carefully before agreeing to it. The Agreement may cover more than one software project managed by Us.
+
+If you have access to this repository, using the SecureCodeBox or contribute you agree to this contributor agreement and make this document effective.
 
 ## 1. Definitions
 
@@ -36,13 +38,13 @@ As a condition on the grant of rights in Sections 2.1 and 2.2, We agree to licen
 
 In addition, We may use the following licenses for Media in the Contribution: Creative Commons Attribution 3.0 (including any right to adopt any future version of a license if permitted).
 
-### 2.4 Moral Rights. 
+### 2.4 Moral Rights.
 If moral rights apply to the Contribution, to the maximum extent permitted by law, You waive and agree not to assert such moral rights against Us or our successors in interest, or any of our licensees, either direct or indirect.
 
-### 2.5 Our Rights. 
+### 2.5 Our Rights.
 You acknowledge that We are not obligated to use Your Contribution as part of the Material and may decide to include any Contribution We consider appropriate.
 
-### 2.6 Reservation of Rights. 
+### 2.6 Reservation of Rights.
 Any rights not expressly licensed under this section are expressly reserved by You.
 
 ## 3. Agreement
@@ -75,18 +77,4 @@ TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT WILL YOU BE LIABL
 
 6.5 If any provision of this Agreement is found void and unenforceable, such provision will be replaced to the extent possible with a provision that comes closest to the meaning of the original provision and which is enforceable. The terms and conditions set forth in this Agreement shall apply notwithstanding any failure of essential purpose of this Agreement or any limited remedy to the maximum extent possible under law.
 
-```
-You
-________________________
-Name: __________________
-Address: ________________
-________________________
-
-Us
-________________________
-Name: __________________
-Title: ___________________
-Address: ________________
-________________________
-```
 Harmony (HA-CLA-I-LIST) Version 1.0

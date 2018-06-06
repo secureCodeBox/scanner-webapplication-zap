@@ -1,19 +1,31 @@
+/*
+ *
+ *  *
+ *  * SecureCodeBox (SCB)
+ *  * Copyright 2015-2018 iteratec GmbH
+ *  *
+ *  * Licensed under the Apache License, Version 2.0 (the "License");
+ *  * you may not use this file except in compliance with the License.
+ *  * You may obtain a copy of the License at
+ *  *
+ *  * 	http://www.apache.org/licenses/LICENSE-2.0
+ *  *
+ *  * Unless required by applicable law or agreed to in writing, software
+ *  * distributed under the License is distributed on an "AS IS" BASIS,
+ *  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  * See the License for the specific language governing permissions and
+ *  * limitations under the License.
+ *
+ */
+
 package io.securecodebox.zap;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import springfox.documentation.builders.ApiInfoBuilder;
-import springfox.documentation.builders.PathSelectors;
-import springfox.documentation.builders.RequestHandlerSelectors;
-import springfox.documentation.service.ApiInfo;
-import springfox.documentation.spi.DocumentationType;
-import springfox.documentation.spring.web.plugins.Docket;
-import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 
 @Configuration
@@ -21,25 +33,8 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 @PropertySource("version.properties")  // Add a additional property file
 @EnableAutoConfiguration
 @EnableScheduling
-@EnableSwagger2
 public class Application {
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
-    }
-
-    private static ApiInfo apiInfo() {
-        return new ApiInfoBuilder()
-                .title("SecureCodeBox ZAP API")
-                .termsOfServiceUrl("https://securecodebox.io")
-                .license("iteratec GmbH 2018")
-                .version("1.0").build();
-    }
-
-    @Bean
-    public Docket zapApi() {
-        return new Docket(DocumentationType.SWAGGER_2)
-                .groupName("zap-api").apiInfo(apiInfo())
-                .select().apis(RequestHandlerSelectors.any()).paths(PathSelectors.any())
-                .build();
     }
 }

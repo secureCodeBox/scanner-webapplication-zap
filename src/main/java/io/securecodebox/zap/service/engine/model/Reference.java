@@ -18,26 +18,28 @@
  *
  */
 
-package io.securecodebox.zap.service.engine.model.zap;
+package io.securecodebox.zap.service.engine.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
+
+import java.util.UUID;
 
 
-/**
- * Represents all ZAP specific topic names used to identify the external tasks for this service.
- */
-@AllArgsConstructor
-public enum ZapTopic {
-    ZAP_SPIDER("zap_spider"),
-    ZAP_SCANNER("zap_scan");
+@Data
+@JsonInclude(Include.NON_EMPTY)
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class Reference {
 
-    @Getter
-    private final String name;
+    private String id;
+    private String source;
 
-
-    @Override
-    public String toString() {
-        return name;
+    public Reference(String ref){
+        id = UUID.randomUUID().toString();
+        source = ref;
     }
 }

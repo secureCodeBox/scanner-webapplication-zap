@@ -18,26 +18,17 @@
  *
  */
 
-package io.securecodebox.zap.service.engine.model.zap;
+package io.securecodebox.zap.togglz;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
-
-/**
- * Represents all ZAP specific topic names used to identify the external tasks for this service.
- */
-@AllArgsConstructor
-public enum ZapTopic {
-    ZAP_SPIDER("zap_spider"),
-    ZAP_SCANNER("zap_scan");
-
-    @Getter
-    private final String name;
+import de.otto.edison.togglz.FeatureClassProvider;
+import org.springframework.stereotype.Component;
+import org.togglz.core.Feature;
 
 
+@Component
+public class ZapFeatureClassProvider implements FeatureClassProvider {
     @Override
-    public String toString() {
-        return name;
+    public Class<? extends Feature> getFeatureClass() {
+        return ZapFeature.class;
     }
 }

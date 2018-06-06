@@ -1,18 +1,35 @@
+/*
+ *
+ *  *
+ *  * SecureCodeBox (SCB)
+ *  * Copyright 2015-2018 iteratec GmbH
+ *  *
+ *  * Licensed under the Apache License, Version 2.0 (the "License");
+ *  * you may not use this file except in compliance with the License.
+ *  * You may obtain a copy of the License at
+ *  *
+ *  * 	http://www.apache.org/licenses/LICENSE-2.0
+ *  *
+ *  * Unless required by applicable law or agreed to in writing, software
+ *  * distributed under the License is distributed on an "AS IS" BASIS,
+ *  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  * See the License for the specific language governing permissions and
+ *  * limitations under the License.
+ *
+ */
+
 package io.securecodebox.zap.service.engine;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.securecodebox.zap.configuration.ZapConfiguration;
-import io.securecodebox.zap.rest.BasicAuthRestTemplate;
-import io.securecodebox.zap.rest.LoggingRequestInterceptor;
 import io.securecodebox.zap.service.engine.model.CompleteTask;
-import io.securecodebox.zap.service.engine.model.ExternalTask;
-import io.securecodebox.zap.service.engine.model.FetchTasks;
+import io.securecodebox.zap.service.engine.model.ScanFailure;
+import io.securecodebox.zap.service.engine.model.zap.ZapTask;
 import io.securecodebox.zap.service.engine.model.zap.ZapTopic;
+import io.securecodebox.zap.util.BasicAuthRestTemplate;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -32,160 +49,139 @@ import java.util.Map;
 
 /**
  * Consumes and integrates the Camunda process engine API for external tasks.
- *
- * Hoid si die ExternalTasks vo Camunda über Rest
- *
- * De is wichtig
+ * Executes the REST calls
  */
 @Service
 @Slf4j
 @ToString
 public class EngineTaskApiClient {
-    
-    @Autowired
-    private ZapConfiguration config;
+    private final ZapConfiguration config;
     private RestTemplate restTemplate;
 
-    private static final Logger LOG = LoggerFactory.getLogger(EngineTaskApiClient.class);
+
+    @Autowired
+    public EngineTaskApiClient(ZapConfiguration config) {
+        this.config = config;
+    }
 
     @PostConstruct
     public void init() {
-        LOG.info("initiating rest template : {} and {}", config.getCamundaUsername(), config.getCamundaPassword());
-        restTemplate = config.getCamundaUsername() != null && config.getCamundaPassword() != null 
-                ? 
-                new BasicAuthRestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()), 
-                        config.getCamundaUsername(), config.getCamundaPassword()) 
-                : 
-                new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
+
+        log.info("initiating REST template for user {}", config.getCamundaUsername());
+
+        restTemplate = (config.getCamundaUsername() != null && config.getCamundaPassword() != null)
+                ? new BasicAuthRestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()), config.getCamundaUsername(), config.getCamundaPassword())
+                : new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
 
         restTemplate.setInterceptors(Collections.singletonList(new LoggingRequestInterceptor()));
 
-        LOG.info("EngineApiClient is using {} as Engine Base URL.", config.getProcessEngineApiUrl());
+        log.info("EngineApiClient is using {} as Engine Base URL.", config.getProcessEngineApiUrl());
     }
 
-    /**
-     * Retrieves the task object for the given taskId from the Process Engine, based on the REST-API:
-     * <a>https://docs.camunda.org/manual/7.5/reference/rest/external-task/get/</a>.
-     * @param taskId The taskId to return the task object for.
-     * @return The task object for the given taskId from the Process Engine.
-     */
-    public ExternalTask getTask(int taskId) {
-        String externalTasksUrl = config.getProcessEngineApiUrl() + '/' + taskId;
-        LOG.debug("Call getTask() via {}", externalTasksUrl);
-        ResponseEntity<ExternalTask> responseTasks = restTemplate.getForEntity(externalTasksUrl, ExternalTask.class);
+    int getTaskCountByTopic(ZapTopic topicName) {
+        String url = config.getProcessEngineApiUrl() + "/count?topicName=" + topicName;
+        log.debug("Call getTaskCountByTopic() via {}", url);
 
-        ExternalTask task = responseTasks.getBody();
-        MediaType contentType = responseTasks.getHeaders().getContentType();
-        HttpStatus statusCode = responseTasks.getStatusCode();
+        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+        Map<String, Object> result = jsonStringToMap(response.getBody());
 
-        if (statusCode.is2xxSuccessful() && contentType.isCompatibleWith(MediaType.APPLICATION_JSON)) {
-            LOG.trace("HTTP Response Success: {}", statusCode);
-            return task;
-        } else {
-            throw new ResourceAccessException(String.format("Couldn't retrieve the task with taskId %s! The Engine Service returned HTTP %s", taskId, statusCode));
-        }
-    }
-
-    public ExternalTask[] getTasksByTopic(ZapTopic topicName) {
-        return getTasksByTopic(topicName, false);
-    }
-
-    private ExternalTask[] getTasksByTopic(ZapTopic topicName, boolean includeLockedTasks) {
-        String externalTasksUrl = config.getProcessEngineApiUrl() + "?topicName=" + topicName;
-        LOG.debug("Call getTasksByTopic() via {}", externalTasksUrl);
-
-        ResponseEntity<ExternalTask[]> responseTasks = restTemplate.getForEntity(externalTasksUrl, ExternalTask[].class);
-
-        ExternalTask[] tasks = responseTasks.getBody();
-        MediaType contentType = responseTasks.getHeaders().getContentType();
-        HttpStatus statusCode = responseTasks.getStatusCode();
-
-        if (statusCode.is2xxSuccessful() && contentType.isCompatibleWith(MediaType.APPLICATION_JSON)) {
-            LOG.trace("HTTP Response Success: {}", statusCode);
-            return tasks;
-        } else {
-            throw new ResourceAccessException(String.format("Couldn't retrieve the tasks for topic %s! The Engine Service returned HTTP %s", topicName, statusCode));
-        }
-    }
-
-    public int getTaskCountByTopic(String topicName) {
-        return getTaskCountByTopic(topicName, false);
-    }
-
-    /**
-     * @param includeLockedTasks Ensure to include locked tasks also or not.
-     */
-    private int getTaskCountByTopic(String topicName, boolean includeLockedTasks) {
-        String externalTasksUrl = config.getProcessEngineApiUrl() + "/count?topicName=" + topicName;
-        LOG.debug("Call getTaskCountByTopic() via {}", externalTasksUrl);
-
-        ResponseEntity<String> responseJson = restTemplate.getForEntity(externalTasksUrl, String.class);
-        String json = responseJson.getBody();
-        MediaType contentType = responseJson.getHeaders().getContentType();
-        HttpStatus statusCode = responseJson.getStatusCode();
-
-        LOG.debug("Result:{} HTTP-Status:{}", json, responseJson.getStatusCode());
-
-        Map<String, Object> map = jsonStringToMap(json);
-
-        if (statusCode.is2xxSuccessful() && contentType.isCompatibleWith(MediaType.APPLICATION_JSON)) {
-            LOG.trace("HTTP Response Success: {}", statusCode);
-            if (map.size() == 1 && map.containsKey("count")) {
-                return Integer.parseInt(map.get("count").toString());
+        if (response.getStatusCode().is2xxSuccessful() && response.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_JSON)) {
+            if (result.size() == 1 && result.containsKey("count")) {
+                return Integer.parseInt(result.get("count").toString());
             } else {
                 throw new ResourceAccessException("Status Code");
             }
         } else {
-            LOG.error("HTTP Response Error: {}", statusCode);
+            log.error("HTTP response error: {}", response.getStatusCode());
             throw new ResourceAccessException("Status Code");
         }
     }
 
-    public <T> T fetchAndLockTasks(FetchTasks fetchTask, Class<T> resultTaskType) {
-        String engineFetchTasksUrl = config.getProcessEngineApiUrl() + "/fetchAndLock";
-        LOG.info(String.format("Trying to fetch %s open worker tasks for the topics: %s via %s", fetchTask.getMaxTasks(), fetchTask.getTopics(), engineFetchTasksUrl));
-
-        ResponseEntity<T> responseFetchedTasks = restTemplate.postForEntity(engineFetchTasksUrl, fetchTask, resultTaskType);
-        ResponseEntity<String> string = restTemplate.postForEntity(engineFetchTasksUrl, fetchTask, String.class);
-
-        T fetchedTasks = responseFetchedTasks.getBody();
-        MediaType contentType = responseFetchedTasks.getHeaders().getContentType();
-        HttpStatus statusCode = responseFetchedTasks.getStatusCode();
-
-        if (statusCode.is2xxSuccessful() && contentType.isCompatibleWith(MediaType.APPLICATION_JSON)) {
-            LOG.debug(String.format("HTTP Response Success: %s", statusCode.toString()));
-        } else {
-            LOG.debug("Currently nothing todo, no tasks found!");
-        }
-        return fetchedTasks;
+    /**
+     * Returns true if the configured SCB Engine API is available and at least one processModell is deployed.
+     * @return
+     */
+    boolean isApiAvailable() {
+        return (this.countProcesses() > 0);
     }
 
-    public void completeTask(String taskId, CompleteTask completeTask) {
-        String completeTasksUrl = config.getProcessEngineApiUrl() + '/' + taskId + "/complete";
-        LOG.info("Post completeTask({}) via {}", taskId, completeTasksUrl);
-        LOG.info("Trying to complete the CompleteTask: {}", completeTask);
+    /**
+     * Returns the number of currently deployed process models which are available at the SCB Engine.
+     * @return
+     */
+    int countProcesses() {
 
-        ResponseEntity<String> responseCompleteTasks = restTemplate.postForEntity(completeTasksUrl, completeTask, String.class);
-        LOG.info(String.format("Completed the task: %s as workerId: %s", taskId, completeTask.getWorkerId()));
+        String url = config.getProcessEngineApiUrl() + "/box/processes/";
+        log.debug("Call countProcesses() via {}", url);
 
-        HttpStatus statusCode = responseCompleteTasks.getStatusCode();
+        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+        log.debug(String.format("Result for countProcesses(): %s", response));
+
+        if (response.getStatusCode().is2xxSuccessful() && response.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_JSON) && !response.toString().isEmpty()) {
+            return response.toString().split("id").length;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
+    ZapTask fetchAndLockTask(ZapTopic zapTopic, String jobId) {
+        String url = config.getProcessEngineApiUrl() + "/box/jobs/lock/" + zapTopic.getName() + "/" + jobId;
+        log.info(String.format("Trying to fetch task for the topic: %s via %s", zapTopic, url));
+
+        ResponseEntity<ZapTask> task = restTemplate.postForEntity(url, null, ZapTask.class);
+        if (task.getBody() != null && task.getStatusCode().is2xxSuccessful() && task.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_JSON)) {
+            log.debug("HTTP Response Success");
+        } else {
+            log.debug("Currently nothing todo, no task found!");
+        }
+        return task.getBody();
+    }
+
+    void completeTask(CompleteTask task) {
+
+        String url = config.getProcessEngineApiUrl() + "/box/jobs/" + task.getJobId() + "/result";
+        log.info("Post completeTask({}) via {}", task, url);
+
+        ResponseEntity<String> completedTask = restTemplate.postForEntity(url, task, String.class);
+        log.info(String.format("Completed the task: %s", task.getJobId()));
+
+        HttpStatus statusCode = completedTask.getStatusCode();
 
         if (statusCode.is2xxSuccessful()) {
-            LOG.info(String.format("Successful completed the task: %s as workerId: %s", taskId, completeTask.getWorkerId()));
+            log.info(String.format("Successfully completed the task: %s: ", task.getJobId()));
         } else {
-            LOG.error(String.format("Couldn't completed the task: %s, the return code is: %s with result: %s", taskId, statusCode, responseCompleteTasks.getBody()));
+            log.error(String.format("Couldn't complete the task: %s, the return code is: %s with result: %s", task.getJobId(), statusCode, completedTask.getBody()));
         }
     }
 
-    private Map<String, Object> jsonStringToMap(String json) {
+    void reportFailure(ScanFailure failure) {
+
+        String url = config.getProcessEngineApiUrl() + "/box/jobs/" + failure.getJobId() + "/failure";
+
+        ResponseEntity<String> completedTask = restTemplate.postForEntity(url, failure, String.class);
+        log.info(String.format("Reported failure: %s", failure));
+
+        HttpStatus statusCode = completedTask.getStatusCode();
+
+        if (statusCode.is2xxSuccessful()) {
+            log.info(String.format("Successfully reported the failure: %s: ", failure));
+        } else {
+            log.error(String.format("Error reporting failure: %s, the return code is: %s with result: %s", failure, statusCode, completedTask.getBody()));
+        }
+
+    }
+
+
+    private static Map<String, Object> jsonStringToMap(String json) {
         ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> map = new HashMap<>();
+        Map<String, Object> map = new HashMap<>(16);
 
         try {
-            map = mapper.readValue(json, new TypeReference<Map<String, String>>() {
-            });
+            map = mapper.readValue(json, new TypeReference<Map<String, String>>() {});
         } catch (IOException e) {
-            LOG.error("Couldnt parse object to map", e);
+            log.error("Couldn't parse object to map", e);
         }
         return map;
     }

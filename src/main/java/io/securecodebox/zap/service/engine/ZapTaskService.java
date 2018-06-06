@@ -1,19 +1,40 @@
+/*
+ *
+ *  *
+ *  * SecureCodeBox (SCB)
+ *  * Copyright 2015-2018 iteratec GmbH
+ *  *
+ *  * Licensed under the Apache License, Version 2.0 (the "License");
+ *  * you may not use this file except in compliance with the License.
+ *  * You may obtain a copy of the License at
+ *  *
+ *  * 	http://www.apache.org/licenses/LICENSE-2.0
+ *  *
+ *  * Unless required by applicable law or agreed to in writing, software
+ *  * distributed under the License is distributed on an "AS IS" BASIS,
+ *  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  * See the License for the specific language governing permissions and
+ *  * limitations under the License.
+ *
+ */
+
 package io.securecodebox.zap.service.engine;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import de.otto.edison.status.domain.Status;
 import de.otto.edison.status.domain.StatusDetail;
 import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.model.*;
-import io.securecodebox.zap.service.engine.model.zap.*;
+import io.securecodebox.zap.service.engine.model.zap.ZapTask;
+import io.securecodebox.zap.service.engine.model.zap.ZapTopic;
+import io.securecodebox.zap.togglz.ZapFeature;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.List;
+import java.io.IOException;
+import java.util.*;
 
 import static java.util.Collections.singletonMap;
 
@@ -26,95 +47,60 @@ public class ZapTaskService extends TaskService {
     @Autowired
     protected ZapConfiguration config;
 
-    private static final Logger LOG = LoggerFactory.getLogger(ZapTaskService.class);
-
-    public ExternalTask[] getZapTasksByTopic(ZapTopic topicName) {
-        return taskApiClient.getTasksByTopic(topicName);
+    public ZapTask getTask(ZapTopic zapTopic){
+        return taskApiClient.fetchAndLockTask(zapTopic, config.getAppId());
     }
 
-    public int getZapTaskCountByTopic(ZapTopic topicName) {
-        return taskApiClient.getTaskCountByTopic(topicName.getName());
-    }
-
-    /**
-     * Fetch and lock scanner tasks with the given maximum count.
-     */
-    public ZapScannerTask[] fetchAndLockScannerTasks(int maxTasks, ZapTopic zapTopic) {
-        FetchTasks fetchTask = createZapFetchTasks(maxTasks, zapTopic, ZapScannerFetchVariables.TASK_VARIABLES);
-        return taskApiClient.fetchAndLockTasks(fetchTask, ZapScannerTask[].class);
-    }
-
-    /**
-     * Fetch and lock spider tasks with the given maximum count.
-     */
-    public ZapSpiderTask[] fetchAndLockSpiderTasks(int maxTasks, ZapTopic zapTopic) {
-        FetchTasks fetchTask = createZapFetchTasks(maxTasks, zapTopic, ZapSpiderFetchVariables.TASK_VARIABLES);
-        return taskApiClient.fetchAndLockTasks(fetchTask, ZapSpiderTask[].class);
-    }
-
-    private FetchTasks createZapFetchTasks(int maxTasks, ZapTopic zapTopic, List<String> variablesToFetch) {
-        TaskTopic topic = new TaskTopic();
-        topic.setTopicName(zapTopic.getName());
-        topic.setLockDuration(config.getTaskLockDurationInMs());
-        topic.setVariables(variablesToFetch);
-
-        FetchTasks result = new FetchTasks();
-        result.setWorkerId(config.getAppId());
-        result.setMaxTasks(maxTasks);
-        result.setTopics(Collections.singletonList(topic));
-        return result;
-    }
-
-    public CompleteTask completeZapScannerTask(ZapScannerTask fetchedTask, String result) {
-        CompleteTask task = createZapScannerCompleteTask(fetchedTask, result);
-        taskApiClient.completeTask(fetchedTask.getId(), task);
+    public CompleteTask completeTask(ZapTask zapTask, List<Finding> findings, String rawResult, ZapTopic zapTopic) {
+        String scannerType = (zapTopic == ZapTopic.ZAP_SCANNER) ? config.getScannerType() : config.getSpiderType();
+        CompleteTask task = new CompleteTask(config.getAppId(), zapTask.getJobId(), scannerType, findings, rawResult);
+        if (!ZapFeature.DISABLE_COMPLETE_ZAP_PROCESS_TASKS.isActive()) {
+            taskApiClient.completeTask(task);
+        }
         return task;
     }
 
-    public CompleteTask completeZapSpiderTask(ZapSpiderTask fetchedTask, String result) {
-        CompleteTask task = createZapSpiderCompleteTask(fetchedTask, result);
-        taskApiClient.completeTask(fetchedTask.getId(), task);
-        return task;
+    public void reportFailure(Exception exception, ZapTask zapTask){
+
+        if(exception != null) {
+            ScanFailure failure = new ScanFailure(config.getAppId(), zapTask.getJobId(), exception.getMessage(), "Cause: " + exception.getCause());
+
+            taskApiClient.reportFailure(failure);
+        }
     }
 
-    private CompleteTask createZapSpiderCompleteTask(ZapSpiderTask zapTask, String zapResult) {
-        ZapSpiderCompleteVariables vars = new ZapSpiderCompleteVariables();
-        vars.setSpiderResult(new ProcessVariable("json", zapResult, null));
-        vars.setSpiderMicroserviceId(new ProcessVariable("String", config.getAppId(), null));
-//        vars.setLastServiceMessage(new ProcessVariable("String", "ZAP spider task finished :-)", null));
+    public List<Finding> createFindings(String zapResult) {
 
-        CompleteTask result = new CompleteTask();
-        result.setWorkerId(config.getAppId());
-        result.setVariables(vars);
-        return result;
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            return objectMapper.readValue(zapResult, objectMapper.getTypeFactory()
+                    .constructCollectionType(List.class, Finding.class));
+        }
+        catch (IOException e) {
+            log.error("Cannot construct findings due to reason: {}", e);
+        }
+        return new LinkedList<>();
     }
 
-    private CompleteTask createZapScannerCompleteTask(ZapScannerTask zapTask, String zapResult) {
-        ZapScannerCompleteVariables vars = new ZapScannerCompleteVariables();
-        vars.setScannerResult(new ProcessVariable("json", zapResult, null));
-        vars.setScannerMicroserviceId(new ProcessVariable("String", config.getAppId(), null));
-//        vars.setLastServiceMessage(new ProcessVariable("String", "ZAP scanner task finished :-)", null));
-
-        CompleteTask result = new CompleteTask();
-        result.setWorkerId(config.getAppId());
-        result.setVariables(vars);
-        return result;
+    public boolean isApiAvailable() {
+        return this.taskApiClient.isApiAvailable();
     }
 
 
     @Override
     public StatusDetail statusDetail() {
         try {
-            int taskCountByTopic = getZapTaskCountByTopic(ZapTopic.ZAP_SCANNER);
-            if (taskCountByTopic >= 0) {
-                LOG.debug("Internal health check: OK");
-                return StatusDetail.statusDetail("TaskService ZAP scanner", Status.OK, "up and running", singletonMap("Open ZAP Scanner tasks", String.valueOf(taskCountByTopic)));
+            boolean isApiAvailable = this.isApiAvailable();
+
+            if (isApiAvailable) {
+                log.debug("Internal health check: OK");
+                return StatusDetail.statusDetail("Engine SCB API", Status.OK, "The Engine API is up and running", singletonMap("Deployed Processes", String.valueOf(this.taskApiClient.countProcesses())));
             } else {
-                return StatusDetail.statusDetail("TaskService ZAP scanner", Status.WARNING, "Couldn't find any ZAP scanner task", singletonMap("Open tasks", String.valueOf(taskCountByTopic)));
+                return StatusDetail.statusDetail("Engine SCB API", Status.WARNING, "Couldn't reach the Engine API!");
             }
         } catch (RuntimeException e) {
-            LOG.debug("Error: Indicating a health problem!", e);
-            return StatusDetail.statusDetail("TaskService ZAP Scanner", Status.ERROR, e.getMessage());
+            log.debug("Error: Indicating a health problem!", e);
+            return StatusDetail.statusDetail("Engine SCB API", Status.ERROR, "Couldn't reach the Engine API: "+ e.getMessage());
         }
     }
 }

@@ -18,26 +18,27 @@
  *
  */
 
-package io.securecodebox.zap.service.engine.model.zap;
+package io.securecodebox.zap.service.engine.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import lombok.Data;
 
+import java.util.HashMap;
+import java.util.Map;
 
-/**
- * Represents all ZAP specific topic names used to identify the external tasks for this service.
- */
-@AllArgsConstructor
-public enum ZapTopic {
-    ZAP_SPIDER("zap_spider"),
-    ZAP_SCANNER("zap_scan");
+@JsonPropertyOrder(alphabetic = true)
+@Data
+public class Target {
 
-    @Getter
-    private final String name;
-
-
-    @Override
-    public String toString() {
-        return name;
+    public Target(@JsonProperty("location") String location) {
+        this.location = location;
     }
+
+    @JsonProperty("name")
+    private String name;
+    @JsonProperty("location")
+    private String location;
+    @JsonProperty("attributes")
+    private Map<String, Object> attributes = new HashMap<>();
 }

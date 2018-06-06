@@ -20,24 +20,21 @@
 
 package io.securecodebox.zap.service.engine.model.zap;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.securecodebox.zap.service.engine.model.Target;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
 
 /**
- * Represents all ZAP specific topic names used to identify the external tasks for this service.
+ * Describes an external task from the engine
  */
-@AllArgsConstructor
-public enum ZapTopic {
-    ZAP_SPIDER("zap_spider"),
-    ZAP_SCANNER("zap_scan");
+@Data
+@Slf4j
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class ZapTask {
 
-    @Getter
-    private final String name;
-
-
-    @Override
-    public String toString() {
-        return name;
-    }
+    private String jobId;
+    private List<Target> targets;
 }
