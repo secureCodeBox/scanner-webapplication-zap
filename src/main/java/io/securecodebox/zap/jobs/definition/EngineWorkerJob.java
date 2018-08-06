@@ -211,14 +211,20 @@ public class EngineWorkerJob implements JobRunnable {
         completeTask(task, publisher, resultFindings, rawFindings, ZapTopic.ZAP_SCANNER);
     }
 
+    private String computeSpiderApiSpecUrl(String specUrlVariable){
+        if(specUrlVariable == null){
+            return null;
+        } else if(specUrlVariable.startsWith("http://") || specUrlVariable.startsWith("https://")) {
+            return specUrlVariable;
+        } else {
+            return config.getProcessEngineApiUrl() + "/rest/" + specUrlVariable;
+        }
+    }
+
     private String executeSpider(Target target, String contextId, String userId) throws ClientApiException {
-
-
-        String spiderApiSpecUrl = (target.getAttributes().get(ZapFields.ZAP_SPIDER_API_SPEC_URL.name()) != null)
-                ?
-                config.getProcessEngineApiUrl() + "/rest/" + target.getAttributes().get(ZapFields.ZAP_SPIDER_API_SPEC_URL.name())
-                :
-                null;
+        String spiderApiSpecUrl = computeSpiderApiSpecUrl(
+                (String) target.getAttributes().get(ZapFields.ZAP_SPIDER_API_SPEC_URL.name())
+        );
         Integer spiderMaxDepth = (Integer) target.getAttributes().get(ZapFields.ZAP_SPIDER_MAX_DEPTH.name());
         spiderMaxDepth = (spiderMaxDepth != null) ? spiderMaxDepth : 1;
         log.info("Start Spider with URL: " + target.getLocation());
