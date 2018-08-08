@@ -180,11 +180,13 @@ public class ZapService implements StatusDetailIndicator {
 
     /**
      * Recalls a request for putting it in the ZAP cache
+     * This sends out all spider requests again proxied by the zap proxy.
      *
      * @param target the Target containing a sitemap with all requests to recall
      */
     public void recallTarget(Target target) {
-        Collection<Cookie> cookies = enforceSessionCookie(target.getLocation());
+        ProxyServer proxy = new ProxyServer(config.getZapHost(), config.getZapPort());
+        Collection<Cookie> cookies = enforceSessionCookie(proxy, target.getLocation());
 
         if (target.getAttributes().getSitemap() == null) {
             return;
@@ -194,10 +196,10 @@ public class ZapService implements StatusDetailIndicator {
             try (AsyncHttpClient client = new AsyncHttpClient()) {  // https://asynchttpclient.github.io/async-http-client/proxy.html
                 switch (entry.getMethod()) {
                     case "GET":
-                        callAsyncGetRequest(client, entry.getLocation(), cookies);
+                        callAsyncGetRequest(client, proxy, entry.getLocation(), cookies);
                         break;
                     case "POST":
-                        callAsyncPostRequest(client, entry.getLocation(), entry.getPayload(), cookies);
+                        callAsyncPostRequest(client, proxy, entry.getLocation(), entry.getPayload(), cookies);
                         break;
                     default:
                         log.debug("Nothing to do, method: {} URL:{}", entry.getMethod(), target.getLocation());
@@ -343,14 +345,14 @@ public class ZapService implements StatusDetailIndicator {
     /**
      * Generate first request to enforce a session cookie (if existing) to use for all following requests.
      */
-    private Collection<Cookie> enforceSessionCookie(String url) {
+    private Collection<Cookie> enforceSessionCookie(ProxyServer proxy, String url) {
         Collection<Cookie> result = new HashSet<>(5);
 
         try (AsyncHttpClient client = new AsyncHttpClient()) {
             log.debug("Call sync to retrieve session cookie with GET:{} via ZAP: {}:{}", url, config.getZapHost(), config.getZapPort());
 
             Response response = client.prepareGet(url)
-                    .setProxyServer(new ProxyServer(config.getZapHost(), config.getZapPort()))
+                    .setProxyServer(proxy)
                     .execute(new AsyncCompletionHandler<Response>() {
                         @Override
                         public Response onCompleted(Response r) {
@@ -375,11 +377,11 @@ public class ZapService implements StatusDetailIndicator {
         return result;
     }
 
-    private void callAsyncGetRequest(AsyncHttpClient client, String request, Collection<Cookie> cookies) throws InterruptedException, ExecutionException {
+    private void callAsyncGetRequest(AsyncHttpClient client, ProxyServer proxy, String request, Collection<Cookie> cookies) throws InterruptedException, ExecutionException {
         log.debug("Call async GET:{} with ZAP: {}:{} and #cookies: {}", request, config.getZapHost(), config.getZapPort(), cookies.size());
 
         client.prepareGet(request)
-                .setProxyServer(new ProxyServer(config.getZapHost(), config.getZapPort()))
+                .setProxyServer(proxy)
                 .setCookies(cookies)
                 .execute(new AsyncCompletionHandler<Response>() {
                     @Override
@@ -396,11 +398,11 @@ public class ZapService implements StatusDetailIndicator {
                 }).get();
     }
 
-    private void callAsyncPostRequest(AsyncHttpClient client, String request, String payload, Collection<Cookie> cookies) {
+    private void callAsyncPostRequest(AsyncHttpClient client, ProxyServer proxy, String request, String payload, Collection<Cookie> cookies) {
         log.debug("Call async POST:{} with ZAP: {}:{} and Post-Data: {}", request, config.getZapHost(), config.getZapPort());
 
         client.preparePost(request)
-                .setProxyServer(new ProxyServer(config.getZapHost(), config.getZapPort()))
+                .setProxyServer(proxy)
                 .setBody(payload)
                 .setCookies(cookies)
                 .setHeader("Content-Type", "application/x-www-form-urlencoded")
