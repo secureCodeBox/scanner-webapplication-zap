@@ -28,4 +28,7 @@ public class ZapSitemapEntry {
 
     @JsonProperty("METHOD")
     private String method;
+
+    @JsonProperty("PAYLOAD")
+    private String payload;
 }

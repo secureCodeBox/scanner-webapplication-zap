@@ -149,7 +149,7 @@ public class EngineWorkerJob implements JobRunnable {
         }
 
         if (config.isFilterSpiderResults()) {
-            removeDuplicateScanResults(resultFindings);
+            removeDuplicateSpiderResults(resultFindings);
         }
 
         //Finish the spider task and post findings to the engine
@@ -290,6 +290,17 @@ public class EngineWorkerJob implements JobRunnable {
         service.clearSession();
     }
 
+    /**
+     * Removes values out of query strings
+     * Example: "x=1&y=1" => "x=&y="
+     *
+     * @param queryString
+     * @return Query
+     */
+    protected static String removeQueryValues(String queryString){
+        return queryString.replaceAll("(?:=)[^&]*", "=");
+    }
+
     public static void removeDuplicateScanResults(List<Finding> findings) {
 
         if (findings == null) {
@@ -300,7 +311,31 @@ public class EngineWorkerJob implements JobRunnable {
 
         Set<Finding> findingSet = new HashSet<>();
         for (Finding f : findings) {
-            String uniqueUrl = f.getLocation().replaceAll("(?:=)[^&]*", "=") + "_" + f.getName();
+            String uniqueUrl = removeQueryValues(f.getLocation()) + "_" + f.getName();
+            if (!uniqueUrls.contains(uniqueUrl)) {
+                uniqueUrls.add(uniqueUrl);
+                findingSet.add(f);
+            }
+        }
+        findings.clear();
+        findings.addAll(findingSet);
+    }
+
+    public static void removeDuplicateSpiderResults(List<Finding> findings) {
+
+        if (findings == null) {
+            return;
+        }
+
+        Set<String> uniqueUrls = new HashSet<>();
+
+        Set<Finding> findingSet = new HashSet<>();
+        for (Finding f : findings) {
+
+            String uniqueUrl = removeQueryValues(f.getLocation())
+                    + "_"
+                    + removeQueryValues((String) f.getAttributes().get("postData"));
+
             if (!uniqueUrls.contains(uniqueUrl)) {
                 uniqueUrls.add(uniqueUrl);
                 findingSet.add(f);

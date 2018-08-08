@@ -232,6 +232,32 @@ public class EngineWorkerJobTest {
     }
 
     @Test
+    public void testSpiderDuplicateRemovalShouldEliminateDuplicates() {
+
+        Finding f = new Finding();
+        f.setLocation("http://xss.org?x=1&q=2");
+        f.getAttributes().put("postData", "x=1&y=2");
+
+        Finding f1 = new Finding();
+        f1.setLocation("http://xss.org?x=3&q=2");
+        f1.getAttributes().put("postData", "x=5&y=7");
+
+        Finding f2 = new Finding();
+        f2.setLocation("http://xss.org?x=1&q=1");
+        f2.getAttributes().put("postData", "x=1&z=2");
+
+        List<Finding> findings = new LinkedList<>(Arrays.asList(f, f1, f2));
+        List<Finding> uniqueFindings = new LinkedList<>(Arrays.asList(f, f2));
+
+        assert (findings.size() == 3);
+        EngineWorkerJob.removeDuplicateSpiderResults(findings);
+
+        assert (findings.size() == 2);
+        assertTrue(findings.containsAll(uniqueFindings));
+        assertFalse(findings.contains(f1));
+    }
+
+    @Test
     public void duplicateRemovalWithEmptyListShouldDoNothing() {
         List<Finding> findings = new LinkedList<>();
 

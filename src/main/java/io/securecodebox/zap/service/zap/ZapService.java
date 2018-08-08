@@ -197,7 +197,7 @@ public class ZapService implements StatusDetailIndicator {
                         callAsyncGetRequest(client, entry.getLocation(), cookies);
                         break;
                     case "POST":
-                        callAsyncPostRequest(client, entry.getLocation(), cookies);
+                        callAsyncPostRequest(client, entry.getLocation(), entry.getPayload(), cookies);
                         break;
                     default:
                         log.debug("Nothing to do, method: {} URL:{}", entry.getMethod(), target.getLocation());
@@ -396,12 +396,12 @@ public class ZapService implements StatusDetailIndicator {
                 }).get();
     }
 
-    private void callAsyncPostRequest(AsyncHttpClient client, String request, Collection<Cookie> cookies) {
+    private void callAsyncPostRequest(AsyncHttpClient client, String request, String payload, Collection<Cookie> cookies) {
         log.debug("Call async POST:{} with ZAP: {}:{} and Post-Data: {}", request, config.getZapHost(), config.getZapPort());
 
         client.preparePost(request)
                 .setProxyServer(new ProxyServer(config.getZapHost(), config.getZapPort()))
-                .setBody(request)
+                .setBody(payload)
                 .setCookies(cookies)
                 .setHeader("Content-Type", "application/x-www-form-urlencoded")
                 .execute(new AsyncCompletionHandler<Response>() {
