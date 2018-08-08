@@ -21,7 +21,6 @@
 package io.securecodebox.zap.service.engine.model;
 
 import com.fasterxml.jackson.annotation.*;
-import io.securecodebox.zap.service.engine.model.zap.ZapFields;
 import lombok.Data;
 import lombok.ToString;
 

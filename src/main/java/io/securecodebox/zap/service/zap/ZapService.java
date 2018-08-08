@@ -32,6 +32,7 @@ import de.otto.edison.status.domain.StatusDetail;
 import de.otto.edison.status.indicator.StatusDetailIndicator;
 import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.model.Target;
+import io.securecodebox.zap.service.engine.model.zap.ZapSitemapEntry;
 import io.securecodebox.zap.service.zap.model.SpiderResult;
 import lombok.NonNull;
 import lombok.ToString;
@@ -98,10 +99,10 @@ public class ZapService implements StatusDetailIndicator {
         contextIncludeRegex = contextIncludeRegex.stream().filter(Objects::nonNull).collect(Collectors.toList());
         contextExcludeRegex = contextExcludeRegex.stream().filter(Objects::nonNull).collect(Collectors.toList());
 
-        if(contextIncludeRegex == null){
+        if (contextIncludeRegex == null) {
             contextIncludeRegex = new LinkedList<>();
         }
-        if(contextExcludeRegex == null){
+        if (contextExcludeRegex == null) {
             contextExcludeRegex = new LinkedList<>();
         }
 
@@ -113,13 +114,13 @@ public class ZapService implements StatusDetailIndicator {
 
         Context context = new Context(api);
         String contextId = getSingleResult(context.newContext(CONTEXT_NAME));
-        for(String regex : contextIncludeRegex){
-            if(regex != null && !regex.isEmpty()) {
+        for (String regex : contextIncludeRegex) {
+            if (regex != null && !regex.isEmpty()) {
                 context.includeInContext(CONTEXT_NAME, regex);
             }
         }
 
-        for(String regex : contextExcludeRegex){
+        for (String regex : contextExcludeRegex) {
             context.excludeFromContext(CONTEXT_NAME, regex);
         }
 
@@ -179,27 +180,33 @@ public class ZapService implements StatusDetailIndicator {
 
     /**
      * Recalls a request for putting it in the ZAP cache
-     * @param request the request to recall
+     *
+     * @param target the Target containing a sitemap with all requests to recall
      */
-    public void recallTarget(Target request) {
-        Collection<Cookie> cookies = enforceSessionCookie(request.getLocation());
+    public void recallTarget(Target target) {
+        Collection<Cookie> cookies = enforceSessionCookie(target.getLocation());
 
-        try (AsyncHttpClient client = new AsyncHttpClient()) {  // https://asynchttpclient.github.io/async-http-client/proxy.html
-            if(request.getAttributes().keySet().contains("method")) {
-                switch ((String) request.getAttributes().get("method")) {
+        if (target.getAttributes().getSitemap() == null) {
+            return;
+        }
+
+        for (ZapSitemapEntry entry : target.getAttributes().getSitemap()) {
+            try (AsyncHttpClient client = new AsyncHttpClient()) {  // https://asynchttpclient.github.io/async-http-client/proxy.html
+                switch (entry.getMethod()) {
                     case "GET":
-                        callAsyncGetRequest(client, request.getLocation(), cookies);
+                        callAsyncGetRequest(client, entry.getLocation(), cookies);
                         break;
                     case "POST":
-                        callAsyncPostRequest(client, request.getLocation(), cookies);
+                        callAsyncPostRequest(client, entry.getLocation(), cookies);
                         break;
                     default:
-                        log.debug("Nothing to do, method: {} URL:{}", request.getAttributes().get("method"), request.getLocation());
+                        log.debug("Nothing to do, method: {} URL:{}", entry.getMethod(), target.getLocation());
                         break;
                 }
+            } catch (InterruptedException | ExecutionException e) {
+                log.warn("Could not add url '{}' to zap sitemap.", entry.getLocation());
+                log.warn("Error", e);
             }
-        } catch (InterruptedException | ExecutionException e) {
-            log.error("Error", e);
         }
     }
 
@@ -476,6 +483,7 @@ public class ZapService implements StatusDetailIndicator {
 
     /**
      * This status checks if the configured ZAP API is reachable and returning a API result.
+     *
      * @return
      */
     @Override
