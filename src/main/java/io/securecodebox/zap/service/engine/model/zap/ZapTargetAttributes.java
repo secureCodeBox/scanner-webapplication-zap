@@ -24,6 +24,7 @@ import lombok.Data;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 @JsonPropertyOrder(alphabetic = true)
 @Data
@@ -32,7 +33,7 @@ public class ZapTargetAttributes {
     private String baseUrl;
 
     @JsonProperty("ZAP_SITEMAP")
-    private List<ZapSitemapEntry> sitemap = new LinkedList<>();
+    private List<Map<String, Object>> sitemap = new LinkedList<>();
 
     @JsonProperty("ZAP_SPIDER_MAX_DEPTH")
     private Integer spiderMaxDepth;

@@ -22,19 +22,12 @@ package io.securecodebox.zap.service.zap;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ning.http.client.AsyncCompletionHandler;
-import com.ning.http.client.AsyncHttpClient;
-import com.ning.http.client.ProxyServer;
-import com.ning.http.client.Response;
-import com.ning.http.client.cookie.Cookie;
 import de.otto.edison.status.domain.Status;
 import de.otto.edison.status.domain.StatusDetail;
 import de.otto.edison.status.indicator.StatusDetailIndicator;
 import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.model.Target;
-import io.securecodebox.zap.service.engine.model.zap.ZapSitemapEntry;
 import io.securecodebox.zap.service.zap.model.SpiderResult;
-import lombok.NonNull;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONArray;
@@ -42,7 +35,6 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.zaproxy.clientapi.core.*;
 import org.zaproxy.clientapi.gen.Context;
@@ -51,8 +43,6 @@ import javax.annotation.PostConstruct;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonMap;
@@ -85,7 +75,6 @@ public class ZapService implements StatusDetailIndicator {
     public void init() {
         api = new ClientApi(config.getZapHost(), config.getZapPort());
     }
-
 
     /**
      * Create a new session and context based on the given URL.
@@ -185,29 +174,22 @@ public class ZapService implements StatusDetailIndicator {
      * @param target the Target containing a sitemap with all requests to recall
      */
     public void recallTarget(Target target) {
-        ProxyServer proxy = new ProxyServer(config.getZapHost(), config.getZapPort());
-        Collection<Cookie> cookies = enforceSessionCookie(proxy, target.getLocation());
-
         if (target.getAttributes().getSitemap() == null) {
             return;
         }
 
-        for (ZapSitemapEntry entry : target.getAttributes().getSitemap()) {
-            try (AsyncHttpClient client = new AsyncHttpClient()) {  // https://asynchttpclient.github.io/async-http-client/proxy.html
-                switch (entry.getMethod()) {
-                    case "GET":
-                        callAsyncGetRequest(client, proxy, entry.getLocation(), cookies);
-                        break;
-                    case "POST":
-                        callAsyncPostRequest(client, proxy, entry.getLocation(), entry.getPayload(), cookies);
-                        break;
-                    default:
-                        log.debug("Nothing to do, method: {} URL:{}", entry.getMethod(), target.getLocation());
-                        break;
-                }
-            } catch (InterruptedException | ExecutionException e) {
-                log.warn("Could not add url '{}' to zap sitemap.", entry.getLocation());
-                log.warn("Error", e);
+        ObjectMapper objMapper = new ObjectMapper();
+
+        for (Map<String, Object> entry : target.getAttributes().getSitemap()) {
+            try {
+                String requestHar = objMapper.writeValueAsString(entry);
+                byte[] response = api.core.sendHarRequest(requestHar, "");
+                String msg = new String(response);
+                log.info("Recalled target to ZAP with following response {}", msg);
+            } catch (JsonProcessingException e) {
+                log.error("Couldn't convert Har Request Object to JSON string!", e);
+            } catch (ClientApiException e) {
+                log.error("Couldn't upload Har Request to ZAP!", e);
             }
         }
     }
@@ -254,23 +236,6 @@ public class ZapService implements StatusDetailIndicator {
     }
 
     /**
-     * Start a new spider scan followed by a regular scan and wait until both have finished.
-     *
-     * @return Scan results as JSON string
-     */
-    public String scan(String targetUrl, String apiSpecUrl, int maxDepth) throws ClientApiException {
-        createContext(targetUrl, null, null);
-
-        String id = (String) startSpiderAsUser(targetUrl, apiSpecUrl, maxDepth, "-1", "-1");
-        retrieveSpiderResult(id);
-        id = (String) startScannerAsUser(targetUrl, "-1", "-1");
-        String result = retrieveScannerResult(id, targetUrl);
-
-        return result;
-    }
-
-
-    /**
      * Wait until the spider scan finished, then return its result.
      *
      * @return JSON string
@@ -299,7 +264,7 @@ public class ZapService implements StatusDetailIndicator {
                     .collect(Collectors.toList());
         }
 
-        List<SpiderResult> result = spiderResult.isEmpty()
+        List<Map<String, Object>> result = spiderResult.isEmpty()
                 ? Collections.emptyList()
                 : filterAndExtendSpiderResults(spiderResult);
         log.info("Found #{} spider URLs for the scanId:{}", result.size(), scanId);
@@ -341,85 +306,6 @@ public class ZapService implements StatusDetailIndicator {
         }
     }
 
-
-    /**
-     * Generate first request to enforce a session cookie (if existing) to use for all following requests.
-     */
-    private Collection<Cookie> enforceSessionCookie(ProxyServer proxy, String url) {
-        Collection<Cookie> result = new HashSet<>(5);
-
-        try (AsyncHttpClient client = new AsyncHttpClient()) {
-            log.debug("Call sync to retrieve session cookie with GET:{} via ZAP: {}:{}", url, config.getZapHost(), config.getZapPort());
-
-            Response response = client.prepareGet(url)
-                    .setProxyServer(proxy)
-                    .execute(new AsyncCompletionHandler<Response>() {
-                        @Override
-                        public Response onCompleted(Response r) {
-                            log.debug("GET response: {} {}", r.getStatusCode(), r.getUri());
-                            r.getCookies().forEach(c -> log.info("Found cookie: {} {}", c.getName(), c.getValue()));
-                            return r;
-                        }
-
-                        @Override
-                        public void onThrowable(Throwable t) {
-                            log.error("Error", t);
-                        }
-                    })
-                    .get();
-
-            if (response != null && response.getCookies() != null) {
-                result = response.getCookies();
-            }
-        } catch (InterruptedException | ExecutionException ignored) {
-        }
-
-        return result;
-    }
-
-    private void callAsyncGetRequest(AsyncHttpClient client, ProxyServer proxy, String request, Collection<Cookie> cookies) throws InterruptedException, ExecutionException {
-        log.debug("Call async GET:{} with ZAP: {}:{} and #cookies: {}", request, config.getZapHost(), config.getZapPort(), cookies.size());
-
-        client.prepareGet(request)
-                .setProxyServer(proxy)
-                .setCookies(cookies)
-                .execute(new AsyncCompletionHandler<Response>() {
-                    @Override
-                    public Response onCompleted(Response r) {
-                        log.debug("GET response: {} {}", r.getStatusCode(), r.getUri());
-                        r.getCookies().forEach(c -> log.info("Found cookie: {} {}", c.getName(), c.getValue()));
-                        return r;
-                    }
-
-                    @Override
-                    public void onThrowable(Throwable t) {
-                        log.error("Error", t);
-                    }
-                }).get();
-    }
-
-    private void callAsyncPostRequest(AsyncHttpClient client, ProxyServer proxy, String request, String payload, Collection<Cookie> cookies) {
-        log.debug("Call async POST:{} with ZAP: {}:{} and Post-Data: {}", request, config.getZapHost(), config.getZapPort());
-
-        client.preparePost(request)
-                .setProxyServer(proxy)
-                .setBody(payload)
-                .setCookies(cookies)
-                .setHeader("Content-Type", "application/x-www-form-urlencoded")
-                .execute(new AsyncCompletionHandler<Response>() {
-                    @Override
-                    public Response onCompleted(Response r) {
-                        log.debug("POST response: {}", r);
-                        return r;
-                    }
-
-                    @Override
-                    public void onThrowable(Throwable t) {
-                        log.error("Error", t);
-                    }
-                });
-    }
-
     private static String getSingleResult(ApiResponse response) {
         if (response instanceof ApiResponseElement) {
             return ((ApiResponseElement) response).getValue();
@@ -428,60 +314,44 @@ public class ZapService implements StatusDetailIndicator {
     }
 
     /**
-     * Keep all result URLs with HTTP status code 2xx/3xx/1xx and extend them with additional information.
+     * Returns the HAR (HTTP Archive) of a single entry in the ZAP Tree.
+     * Currently only the request portion is required and used.
+     *
+     * This sends a Request to the ZapAPI
+     *
+     * @param siteId aka MessageId
+     * @return request portion of the HAR
      */
-    private List<SpiderResult> filterAndExtendSpiderResults(Collection<SpiderResult> urls) throws ClientApiException {
+    private Map<String, Object> getHarForRequest(String siteId) {
         JSONParser parser = new JSONParser();
-        List<SpiderResult> result = new ArrayList<>(urls.size());
 
-        for (SpiderResult url : urls) {
-            HttpStatus status = HttpStatus.valueOf(Integer.parseInt(url.getStatusCode()));
-            if (status.is2xxSuccessful() || status.is3xxRedirection() || status.is1xxInformational()) {
-                String msg = new String(api.core.messageHar(url.getMessageId()));
-                try {
-                    JSONArray entries = (JSONArray) ((JSONObject) ((JSONObject) parser.parse(msg)).get("log")).get("entries");
-                    if (entries.size() == 1) {
-                        JSONObject entry = (JSONObject) entries.get(0);
-                        JSONObject request = (JSONObject) entry.get("request");
+        try {
+            String msg = new String(api.core.messageHar(siteId));
+            JSONArray entries = (JSONArray) ((JSONObject) ((JSONObject) parser.parse(msg)).get("log")).get("entries");
 
-                        url.setResponseTime((Long) entry.get("time"));
-                        url.setRequestDateTime((String) entry.get("startedDateTime"));
-                        url.setPostData(formatAsString(((JSONObject) request.get("postData")).get("params"), "&"));
-                        url.setHeaders(formatAsString(request.get("headers"), "&"));
-                        url.setQueryString(formatAsString(request.get("queryString"), "&"));
-                        url.setCookies(formatAsString(request.get("cookies"), ";"));
-
-                        log.debug("Successfully extended spider result with messageId {} to '{}'.", url, url.getMessageId());
-                    }
-                } catch (ParseException e) {
-                    throw new RuntimeException("Couldn't parse message with id " + url.getMessageId(), e);
-                }
-                result.add(url);
+            if (entries.size() == 1) {
+                JSONObject entry = (JSONObject) entries.get(0);
+                JSONObject request = (JSONObject) entry.get("request");
+                Map<String, Object> requestObject = new HashMap<>();
+                requestObject.put("request", request);
+                return requestObject;
             }
+        } catch (ClientApiException e) {
+            log.warn("Could not fetch Request HAR Object from ZAP.");
+        } catch (ParseException e) {
+            log.warn("Could not parse Request HAR Object returned from ZAP.");
         }
-        return result;
+        return null;
     }
 
     /**
-     * Reformat the parameters from JSON to flat string.
-     *
-     * @param parameters Should be compatible to {@link JSONArray}
+     * Keep all result URLs with HTTP status code 2xx/3xx/1xx and extend them with additional information.
      */
-    private static String formatAsString(Object parameters, CharSequence concatChar) {
-        Function<JSONObject, String> transform = j -> {
-            try {
-                return URLEncoder.encode(j.get("name").toString(), "UTF-8") + '=' + URLEncoder.encode(j.get("value").toString(), "UTF-8");
-            } catch (UnsupportedEncodingException ignored) {
-                return "";
-            }
-        };
-
-        return ((Collection<Object>) parameters).stream()
-                .map(p -> (JSONObject) p)
-                .map(transform)
-                .collect(Collectors.joining(concatChar));
+    private List<Map<String,Object>> filterAndExtendSpiderResults(Collection<SpiderResult> urls) {
+        return urls.stream()
+                .map(url -> getHarForRequest(url.getMessageId()))
+                .collect(Collectors.toList());
     }
-
 
     /**
      * This status checks if the configured ZAP API is reachable and returning a API result.

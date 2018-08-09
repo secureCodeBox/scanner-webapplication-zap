@@ -46,7 +46,6 @@ import static java.time.Duration.ofMinutes;
 /**
  * Polls the engine for Spider and Scanner Tasks and executes them if available
  */
-
 @Component
 @Slf4j
 @ToString
@@ -59,7 +58,6 @@ public class EngineWorkerJob implements JobRunnable {
     private ZapTaskService taskService;
     @Autowired
     private ZapService service;
-
 
     @Override
     public JobDefinition getJobDefinition() {
@@ -297,7 +295,7 @@ public class EngineWorkerJob implements JobRunnable {
      * @param queryString
      * @return Query
      */
-    protected static String removeQueryValues(String queryString){
+    protected static String removeQueryValues(String queryString) {
         return queryString.replaceAll("(?:=)[^&]*", "=");
     }
 
@@ -328,20 +326,35 @@ public class EngineWorkerJob implements JobRunnable {
         }
 
         Set<String> uniqueUrls = new HashSet<>();
-
         Set<Finding> findingSet = new HashSet<>();
+
         for (Finding f : findings) {
+            if(isGet(f)){
+                String uniqueUrl = removeQueryValues(f.getLocation());
 
-            String uniqueUrl = removeQueryValues(f.getLocation())
-                    + "_"
-                    + removeQueryValues((String) f.getAttributes().get("postData"));
-
-            if (!uniqueUrls.contains(uniqueUrl)) {
-                uniqueUrls.add(uniqueUrl);
+                if (!uniqueUrls.contains(uniqueUrl)) {
+                    uniqueUrls.add(uniqueUrl);
+                    findingSet.add(f);
+                }
+            } else {
                 findingSet.add(f);
             }
         }
         findings.clear();
         findings.addAll(findingSet);
+    }
+
+    private static boolean isGet(Finding f) {
+        Map<String, Object> attributes = f.getAttributes();
+        if (attributes.containsKey("request")){
+            try {
+                Map<String, Object> request = (Map<String, Object>) attributes.get("request");
+                return request.get("method") == "GET";
+            } catch(Exception e){
+                log.error("Could not find required 'request' attribute in the spider result.");
+                throw new RuntimeException("Could not find required 'request' attribute in the spider result.");
+            }
+        }
+        return false;
     }
 }

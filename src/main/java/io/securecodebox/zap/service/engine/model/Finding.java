@@ -55,7 +55,7 @@ public class Finding {
     private Map<String, Object> attributes = new HashMap<>();
 
     @JsonAnySetter
-    public void handleUnknownProperty(String key, String value){
+    public void handleUnknownProperty(String key, Object value){
         attributes.put(key, value);
     }
 
