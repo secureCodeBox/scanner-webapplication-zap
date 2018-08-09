@@ -266,7 +266,7 @@ public class ZapService implements StatusDetailIndicator {
 
         List<Map<String, Object>> result = spiderResult.isEmpty()
                 ? Collections.emptyList()
-                : filterAndExtendSpiderResults(spiderResult);
+                : getHarInformationForSpiderResults(spiderResult);
         log.info("Found #{} spider URLs for the scanId:{}", result.size(), scanId);
 
         try {
@@ -345,9 +345,9 @@ public class ZapService implements StatusDetailIndicator {
     }
 
     /**
-     * Keep all result URLs with HTTP status code 2xx/3xx/1xx and extend them with additional information.
+     * Fetches HAR (HTTP Archive) Information for all entries of the ZAP Site Tree
      */
-    private List<Map<String,Object>> filterAndExtendSpiderResults(Collection<SpiderResult> urls) {
+    private List<Map<String,Object>> getHarInformationForSpiderResults(Collection<SpiderResult> urls) {
         return urls.stream()
                 .map(url -> getHarForRequest(url.getMessageId()))
                 .collect(Collectors.toList());
