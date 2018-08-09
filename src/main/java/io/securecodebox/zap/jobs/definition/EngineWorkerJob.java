@@ -349,7 +349,7 @@ public class EngineWorkerJob implements JobRunnable {
         if (attributes.containsKey("request")){
             try {
                 Map<String, Object> request = (Map<String, Object>) attributes.get("request");
-                return request.get("method") == "GET";
+                return request.get("method").equals("GET");
             } catch(Exception e){
                 log.error("Could not find required 'request' attribute in the spider result.");
                 throw new RuntimeException("Could not find required 'request' attribute in the spider result.");

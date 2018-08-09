@@ -42,6 +42,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -223,38 +224,49 @@ public class EngineWorkerJobTest {
         List<Finding> findings = new LinkedList<>(Arrays.asList(f, f1, f2, f3, f4, f5));
         List<Finding> uniqueFindings = new LinkedList<>(Arrays.asList(f, f3, f4, f5));
 
-        assert (findings.size() == 6);
+        assertEquals(6, findings.size());
         EngineWorkerJob.removeDuplicateScanResults(findings);
 
-        assertTrue(findings.size() == 4);
+        assertEquals(4, findings.size());
         assertTrue(findings.containsAll(uniqueFindings));
         assertFalse(findings.contains(f2));
     }
 
+    protected Map<String, Object> createRequestObject(String method, String payload){
+        Map<String, Object> request = new HashMap<>();
+        request.put("method", method);
+        request.put("payload", payload);
+        return request;
+    }
+
     @Test
     public void testSpiderDuplicateRemovalShouldEliminateDuplicates() {
-
         Finding f = new Finding();
         f.setLocation("http://xss.org?x=1&q=2");
-        f.getAttributes().put("postData", "x=1&y=2");
+        f.getAttributes().put("request", createRequestObject("POST", "foo=bar"));
 
         Finding f1 = new Finding();
-        f1.setLocation("http://xss.org?x=3&q=2");
-        f1.getAttributes().put("postData", "x=5&y=7");
+        f1.setLocation("http://xss.org?x=1&q=2");
+        f1.getAttributes().put("request", createRequestObject("POST", "bar=foo"));
 
         Finding f2 = new Finding();
         f2.setLocation("http://xss.org?x=1&q=1");
-        f2.getAttributes().put("postData", "x=1&z=2");
+        f2.getAttributes().put("request", createRequestObject("GET", null));
 
-        List<Finding> findings = new LinkedList<>(Arrays.asList(f, f1, f2));
-        List<Finding> uniqueFindings = new LinkedList<>(Arrays.asList(f, f2));
+        Finding f3 = new Finding();
+        f3.setLocation("http://xss.org?x=1&q=1");
+        f3.getAttributes().put("request", createRequestObject("GET", "foobar"));
 
-        assert (findings.size() == 3);
+        List<Finding> findings = new LinkedList<>(Arrays.asList(f, f1, f2, f3));
+        List<Finding> uniqueFindings = new LinkedList<>(Arrays.asList(f, f1, f2));
+
+        assertEquals(4, findings.size());
+
         EngineWorkerJob.removeDuplicateSpiderResults(findings);
 
-        assert (findings.size() == 2);
+        assertEquals(3, findings.size());
         assertTrue(findings.containsAll(uniqueFindings));
-        assertFalse(findings.contains(f1));
+        assertFalse(findings.contains(f3));
     }
 
     @Test
