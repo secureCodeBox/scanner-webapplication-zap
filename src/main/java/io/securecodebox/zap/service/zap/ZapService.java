@@ -334,6 +334,8 @@ public class ZapService implements StatusDetailIndicator {
                 JSONObject request = (JSONObject) entry.get("request");
                 Map<String, Object> requestObject = new HashMap<>();
                 requestObject.put("request", request);
+                requestObject.put("url", request.get("url"));
+
                 return requestObject;
             }
         } catch (ClientApiException e) {
