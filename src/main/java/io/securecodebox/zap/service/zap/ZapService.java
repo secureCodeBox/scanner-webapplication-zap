@@ -85,19 +85,7 @@ public class ZapService implements StatusDetailIndicator {
     public String createContext(String targetUrl, List<String> contextIncludeRegex, List<String> contextExcludeRegex) throws ClientApiException {
         log.info("Starting to create a new ZAP session '{}' and context '{}'.", SESSION_NAME, CONTEXT_NAME);
 
-        contextIncludeRegex = contextIncludeRegex.stream().filter(Objects::nonNull).collect(Collectors.toList());
-        contextExcludeRegex = contextExcludeRegex.stream().filter(Objects::nonNull).collect(Collectors.toList());
-
-        if (contextIncludeRegex == null) {
-            contextIncludeRegex = new LinkedList<>();
-        }
-        if (contextExcludeRegex == null) {
-            contextExcludeRegex = new LinkedList<>();
-        }
-
-        if (contextIncludeRegex.isEmpty()) {
-            contextIncludeRegex.add("\\Q" + targetUrl + "\\E.*");
-        }
+        contextIncludeRegex.add("\\Q" + targetUrl + "\\E.*");
 
         api.core.newSession(SESSION_NAME, "true");
 

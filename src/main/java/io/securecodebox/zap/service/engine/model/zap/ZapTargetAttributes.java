@@ -18,13 +18,13 @@
  */
 package io.securecodebox.zap.service.engine.model.zap;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @JsonPropertyOrder(alphabetic = true)
 @Data
@@ -38,16 +38,17 @@ public class ZapTargetAttributes {
     @JsonProperty("ZAP_SPIDER_MAX_DEPTH")
     private Integer spiderMaxDepth;
     @JsonProperty("ZAP_SPIDER_INCLUDE_REGEX")
-    private String spiderIncludeRegex;
+    private List<String> spiderIncludeRegex;
     @JsonProperty("ZAP_SPIDER_EXCLUDE_REGEX")
-    private String spiderExcludeRegex;
+    private List<String> spiderExcludeRegex;
+
     @JsonProperty("ZAP_SPIDER_API_SPEC_URL")
     private String spiderApiSpecUrl;
 
     @JsonProperty("ZAP_SCANNER_INCLUDE_REGEX")
-    private String scannerIncludeRegex;
+    private List<String> scannerIncludeRegex;
     @JsonProperty("ZAP_SCANNER_EXCLUDE_REGEX")
-    private String scannerExcludeRegex;
+    private List<String> scannerExcludeRegex;
 
     @JsonProperty("ZAP_AUTHENTICATION")
     private Boolean authentication;
@@ -72,4 +73,29 @@ public class ZapTargetAttributes {
     private String spiderConfigurationType;
     @JsonProperty("ZAP_SCANNER_CONFIGURATION_TYPE")
     private String scannerConfigurationType;
+
+    @JsonIgnore
+    private List<String> removeEmptyAndNullValues(List<String> list){
+        if (list == null) {
+            return new LinkedList<>();
+        }
+
+        return list.stream()
+                .filter(Objects::nonNull)
+                .filter(regex -> !regex.trim().equals(""))
+                .collect(Collectors.toList());
+    }
+
+    public List<String> getSpiderIncludeRegex() {
+        return removeEmptyAndNullValues(spiderIncludeRegex);
+    }
+    public List<String> getSpiderExcludeRegex() {
+        return removeEmptyAndNullValues(spiderExcludeRegex);
+    }
+    public List<String> getScannerIncludeRegex() {
+        return removeEmptyAndNullValues(scannerIncludeRegex);
+    }
+    public List<String> getScannerExcludeRegex() {
+        return removeEmptyAndNullValues(scannerExcludeRegex);
+    }
 }

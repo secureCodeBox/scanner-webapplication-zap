@@ -28,6 +28,7 @@ import io.securecodebox.zap.service.engine.ZapTaskService;
 import io.securecodebox.zap.service.engine.model.CompleteTask;
 import io.securecodebox.zap.service.engine.model.Finding;
 import io.securecodebox.zap.service.engine.model.Target;
+import io.securecodebox.zap.service.engine.model.zap.ZapTargetAttributes;
 import io.securecodebox.zap.service.engine.model.zap.ZapTask;
 import io.securecodebox.zap.service.engine.model.zap.ZapTopic;
 import io.securecodebox.zap.service.zap.ZapService;
@@ -128,13 +129,11 @@ public class EngineWorkerJob implements JobRunnable {
         log.info("Starting Spider Task with targets: {}", task.getTargets());
 
         for (Target target : task.getTargets()) {
-
-            String includeRegex = target.getAttributes().getSpiderIncludeRegex();
-            String excludeRegex = target.getAttributes().getSpiderExcludeRegex();
+            ZapTargetAttributes attributes = target.getAttributes();
 
             //Create a new Context for each target
-            String contextId = service.createContext(target.getAttributes().getBaseUrl(),
-                    Collections.singletonList(includeRegex), Collections.singletonList(excludeRegex));
+            String contextId = service.createContext(attributes.getBaseUrl(),
+                    attributes.getSpiderIncludeRegex(), attributes.getSpiderExcludeRegex());
 
             String userId = configureAuthentication(target, contextId);
             String result = executeSpider(target, contextId, userId);
@@ -223,22 +222,9 @@ public class EngineWorkerJob implements JobRunnable {
     }
 
     private String configureScannerContext(String targetUrl, Target target) throws ClientApiException {
-
-        //Get configuration settings from the target
-        List<String> includeRegexes = new LinkedList<>();
-        List<String> excludeRegexes = new LinkedList<>();
-
-        String includeRegex = target.getAttributes().getScannerIncludeRegex();
-        if (includeRegex != null) {
-            includeRegexes.add(includeRegex);
-        }
-        String excludeRegex = target.getAttributes().getScannerExcludeRegex();
-        if (excludeRegex != null) {
-            excludeRegexes.add(excludeRegex);
-        }
-
+        ZapTargetAttributes attributes = target.getAttributes();
         //Create a new Context for all the targets belonging to this context
-        return service.createContext(targetUrl, includeRegexes, excludeRegexes);
+        return service.createContext(targetUrl, attributes.getScannerIncludeRegex(), attributes.getScannerExcludeRegex());
     }
 
     private String configureAuthentication(Target target, String contextId) throws ClientApiException, UnsupportedEncodingException {
