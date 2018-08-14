@@ -303,6 +303,7 @@ public class ZapService implements StatusDetailIndicator {
             finding.getAttributes().put("EVIDENCE", alert.getEvidence());
             finding.getAttributes().put("WASC_ID", alert.getWascId());
             finding.getAttributes().put("PLUGIN_ID", alert.getPluginId());
+            finding.getAttributes().put("OTHER_REFERENCES", alert.getReference().split("\n"));
 
             Reference reference = new Reference();
             reference.setId("CVE-"+ alert.getCweId());
