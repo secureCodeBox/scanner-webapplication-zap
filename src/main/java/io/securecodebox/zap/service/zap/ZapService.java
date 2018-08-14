@@ -26,6 +26,8 @@ import de.otto.edison.status.domain.Status;
 import de.otto.edison.status.domain.StatusDetail;
 import de.otto.edison.status.indicator.StatusDetailIndicator;
 import io.securecodebox.zap.configuration.ZapConfiguration;
+import io.securecodebox.zap.service.engine.model.Finding;
+import io.securecodebox.zap.service.engine.model.Reference;
 import io.securecodebox.zap.service.engine.model.Target;
 import io.securecodebox.zap.service.zap.model.SpiderResult;
 import lombok.ToString;
@@ -284,10 +286,35 @@ public class ZapService implements StatusDetailIndicator {
         }
 
         List<Alert> result = api.getAlerts(targetUrl, -1, -1);
+
+        List<Finding> findings = result.stream().map(alert -> {
+            Finding finding = new Finding();
+            finding.setLocation(alert.getUrl());
+            finding.setName(alert.getName());
+            finding.setSeverity(alert.getRisk().name());
+            finding.setDescription(alert.getDescription());
+            finding.setHint(alert.getSolution());
+            finding.setCategory(alert.getName());
+
+            finding.getAttributes().put("HAR", getHarForRequest(alert.getMessageId()));
+            finding.getAttributes().put("OTHER", alert.getOther());
+            finding.getAttributes().put("ATTACK", alert.getAttack());
+            finding.getAttributes().put("CONFIDENCE", alert.getConfidence().name());
+            finding.getAttributes().put("EVIDENCE", alert.getEvidence());
+            finding.getAttributes().put("WASC_ID", alert.getWascId());
+            finding.getAttributes().put("PLUGIN_ID", alert.getPluginId());
+
+            Reference reference = new Reference();
+            reference.setId("CVE-"+ alert.getCweId());
+            reference.setSource("https://cwe.mitre.org/data/definitions/" + alert.getCweId() +".html");
+            finding.setReference(reference);
+
+            return finding;
+        }).collect(Collectors.toList());
         log.info("Found #{} alerts for targetUrl: {}", result.size(), targetUrl);
 
         try {
-            return new ObjectMapper().writeValueAsString(result);
+            return new ObjectMapper().writeValueAsString(findings);
         } catch (JsonProcessingException e) {
             log.error("Couldn't convert List<Alert> to JSON string!", e);
             return "{}";
@@ -307,24 +334,18 @@ public class ZapService implements StatusDetailIndicator {
      *
      * This sends a Request to the ZapAPI
      *
-     * @param siteId aka MessageId
+     * @param requestId aka MessageId
      * @return request portion of the HAR
      */
-    private Map<String, Object> getHarForRequest(String siteId) {
+    JSONObject getHarForRequest(String requestId) {
         JSONParser parser = new JSONParser();
 
         try {
-            String msg = new String(api.core.messageHar(siteId));
+            String msg = new String(api.core.messageHar(requestId));
             JSONArray entries = (JSONArray) ((JSONObject) ((JSONObject) parser.parse(msg)).get("log")).get("entries");
 
             if (entries.size() == 1) {
-                JSONObject entry = (JSONObject) entries.get(0);
-                JSONObject request = (JSONObject) entry.get("request");
-                Map<String, Object> requestObject = new HashMap<>();
-                requestObject.put("request", request);
-                requestObject.put("url", request.get("url"));
-
-                return requestObject;
+                return (JSONObject) entries.get(0);
             }
         } catch (ClientApiException e) {
             log.warn("Could not fetch Request HAR Object from ZAP.");
@@ -334,12 +355,23 @@ public class ZapService implements StatusDetailIndicator {
         return null;
     }
 
+    Map<String, Object> getHarRequestPortionForRequest(String requestId){
+        JSONObject har = getHarForRequest(requestId);
+
+        JSONObject request = (JSONObject) har.get("request");
+        Map<String, Object> requestObject = new HashMap<>();
+        requestObject.put("request", request);
+        requestObject.put("url", request.get("url"));
+
+        return requestObject;
+    }
+
     /**
      * Fetches HAR (HTTP Archive) Information for all entries of the ZAP Site Tree
      */
     private List<Map<String,Object>> getHarInformationForSpiderResults(Collection<SpiderResult> urls) {
         return urls.stream()
-                .map(url -> getHarForRequest(url.getMessageId()))
+                .map(url -> getHarRequestPortionForRequest(url.getMessageId()))
                 .collect(Collectors.toList());
     }
 

@@ -37,8 +37,7 @@ public class Finding {
     /**
      * Id of the finding. Must be unique for every finding.
      */
-    @JsonIgnore
-    private UUID uuid;
+    private UUID id;
     private String name;
     private String description;
     @JsonAlias("alert")
@@ -61,10 +60,10 @@ public class Finding {
 
     @JsonProperty("id")
     public UUID getId() {
-        if (uuid == null){
-            uuid = UUID.randomUUID();
+        if (id == null){
+            id = UUID.randomUUID();
         }
-        return uuid;
+        return id;
     }
 
     public String getSeverity() {

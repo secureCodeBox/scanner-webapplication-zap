@@ -38,6 +38,8 @@ public class Reference {
     private String id;
     private String source;
 
+    public Reference(){}
+
     public Reference(String ref){
         id = UUID.randomUUID().toString();
         source = ref;
