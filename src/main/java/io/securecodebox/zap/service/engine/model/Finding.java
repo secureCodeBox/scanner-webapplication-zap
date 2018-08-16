@@ -21,7 +21,6 @@
 package io.securecodebox.zap.service.engine.model;
 
 import com.fasterxml.jackson.annotation.*;
-import io.securecodebox.zap.service.engine.model.zap.ZapFields;
 import lombok.Data;
 import lombok.ToString;
 
@@ -38,8 +37,7 @@ public class Finding {
     /**
      * Id of the finding. Must be unique for every finding.
      */
-    @JsonIgnore
-    private UUID uuid;
+    private UUID id;
     private String name;
     private String description;
     @JsonAlias("alert")
@@ -56,16 +54,16 @@ public class Finding {
     private Map<String, Object> attributes = new HashMap<>();
 
     @JsonAnySetter
-    public void handleUnknownProperty(String key, String value){
+    public void handleUnknownProperty(String key, Object value){
         attributes.put(key, value);
     }
 
     @JsonProperty("id")
     public UUID getId() {
-        if (uuid == null){
-            uuid = UUID.randomUUID();
+        if (id == null){
+            id = UUID.randomUUID();
         }
-        return uuid;
+        return id;
     }
 
     public String getSeverity() {

@@ -22,10 +22,8 @@ package io.securecodebox.zap.service.engine.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import io.securecodebox.zap.service.engine.model.zap.ZapTargetAttributes;
 import lombok.Data;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @JsonPropertyOrder(alphabetic = true)
 @Data
@@ -40,5 +38,5 @@ public class Target {
     @JsonProperty("location")
     private String location;
     @JsonProperty("attributes")
-    private Map<String, Object> attributes = new HashMap<>();
+    private ZapTargetAttributes attributes = new ZapTargetAttributes();
 }
