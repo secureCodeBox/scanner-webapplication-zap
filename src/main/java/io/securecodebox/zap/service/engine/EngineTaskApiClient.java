@@ -142,7 +142,7 @@ public class EngineTaskApiClient {
     void completeTask(CompleteTask task) {
 
         String url = config.getProcessEngineApiUrl() + "/box/jobs/" + task.getJobId() + "/result";
-        log.info("Post completeTask({}) via {}", task, url);
+        log.debug("Post completeTask({}) via {}", task.getJobId(), url);
 
         ResponseEntity<String> completedTask = restTemplate.postForEntity(url, task, String.class);
         log.info(String.format("Completed the task: %s", task.getJobId()));

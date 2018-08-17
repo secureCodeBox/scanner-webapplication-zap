@@ -164,18 +164,21 @@ public class ZapService implements StatusDetailIndicator {
      * @param target the Target containing a sitemap with all requests to recall
      */
     public void recallTarget(Target target) {
-        if (target.getAttributes().getSitemap() == null) {
+        List<Map<String, Object>> sitemap = target.getAttributes().getSitemap();
+        if (sitemap == null) {
             return;
         }
 
         ObjectMapper objMapper = new ObjectMapper();
 
-        for (Map<String, Object> entry : target.getAttributes().getSitemap()) {
+        log.info("Recalling {} requests to zap.", sitemap.size());
+
+        for (Map<String, Object> entry : sitemap) {
             try {
                 String requestHar = objMapper.writeValueAsString(entry);
                 byte[] response = api.core.sendHarRequest(requestHar, "");
                 String msg = new String(response);
-                log.info("Recalled target to ZAP with following response {}", msg);
+                log.debug("Recalled target to ZAP with following response {}", msg);
             } catch (JsonProcessingException e) {
                 log.error("Couldn't convert Har Request Object to JSON string!", e);
             } catch (ClientApiException e) {

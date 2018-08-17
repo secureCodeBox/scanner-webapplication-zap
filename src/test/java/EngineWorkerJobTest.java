@@ -22,6 +22,7 @@ import de.otto.edison.jobs.eventbus.JobEventPublisher;
 import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.jobs.definition.EngineWorkerJob;
 import io.securecodebox.zap.service.engine.ZapTaskService;
+import io.securecodebox.zap.service.engine.model.CompleteTask;
 import io.securecodebox.zap.service.engine.model.Finding;
 import io.securecodebox.zap.service.engine.model.Reference;
 import io.securecodebox.zap.service.engine.model.Target;
@@ -69,6 +70,10 @@ public class EngineWorkerJobTest {
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
+        when(
+            taskService.completeTask(any(), any(), any(), any()))
+            .thenReturn(new CompleteTask("1", "1", "zap", new LinkedList<>(), "[]")
+        );
     }
 
     @Test
