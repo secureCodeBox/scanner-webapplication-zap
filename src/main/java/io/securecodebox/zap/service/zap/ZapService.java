@@ -214,8 +214,6 @@ public class ZapService implements StatusDetailIndicator {
     public Object startScannerAsUser(String targetUrl, String contextId, String userId) throws ClientApiException {
         log.info("Starting scanner for targetUrl '{}' and userId {}.", targetUrl, userId);
 
-        api.accessUrl(targetUrl);
-
         api.ascan.enableAllScanners(null);
         api.ascan.setOptionHandleAntiCSRFTokens(true);
 
