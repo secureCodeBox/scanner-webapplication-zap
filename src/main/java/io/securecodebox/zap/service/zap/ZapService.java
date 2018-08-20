@@ -350,9 +350,9 @@ public class ZapService implements StatusDetailIndicator {
                 return (JSONObject) entries.get(0);
             }
         } catch (ClientApiException e) {
-            log.warn("Could not fetch Request HAR Object from ZAP.");
+            log.warn("Could not fetch Request HAR Object from ZAP.", e.getMessage());
         } catch (ParseException e) {
-            log.warn("Could not parse Request HAR Object returned from ZAP.");
+            log.warn("Could not parse Request HAR Object returned from ZAP.", e.getMessage());
         }
         return null;
     }
