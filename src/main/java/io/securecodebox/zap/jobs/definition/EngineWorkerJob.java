@@ -88,10 +88,10 @@ public class EngineWorkerJob implements JobRunnable {
                 performSpiderTask(publisher, spiderTask);
             } catch (ClientApiException | RuntimeException e) {
                 log.error("Job execution error!", e);
-                taskService.reportFailure(e, spiderTask);
+                taskService.reportFailure(spiderTask.getJobId(), "Spider Job execution error");
             } catch (UnsupportedEncodingException e) {
                 log.error("Couldn't define session management!", e);
-                taskService.reportFailure(e, spiderTask);
+                taskService.reportFailure(spiderTask.getJobId(), "Could not define session management");
             }
         } else {
             publisher.info("No spider tasks fetched.");
@@ -103,10 +103,10 @@ public class EngineWorkerJob implements JobRunnable {
                 performScannerTask(publisher, scannerTask);
             } catch (ClientApiException | RuntimeException e) {
                 log.error("Job execution error!", e);
-                taskService.reportFailure(e, scannerTask);
+                taskService.reportFailure(scannerTask.getJobId(), "Scanner Job Execution error");
             } catch (UnsupportedEncodingException e) {
                 log.error("Couldn't define session management!", e);
-                taskService.reportFailure(e, scannerTask);
+                taskService.reportFailure(scannerTask.getJobId(), "Could not define session management");
             }
         } else {
             publisher.info("No scanner tasks fetched.");
