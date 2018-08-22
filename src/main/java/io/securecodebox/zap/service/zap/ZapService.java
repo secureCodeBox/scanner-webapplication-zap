@@ -316,6 +316,7 @@ public class ZapService implements StatusDetailIndicator {
         log.info("Found #{} alerts for targetUrl: {}", result.size(), targetUrl);
 
         try {
+            log.info("Serializing alerts as json string.");
             return new ObjectMapper().writeValueAsString(findings);
         } catch (JsonProcessingException e) {
             log.error("Couldn't convert List<Alert> to JSON string!", e);

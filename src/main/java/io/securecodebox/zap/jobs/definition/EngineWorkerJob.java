@@ -183,6 +183,7 @@ public class EngineWorkerJob implements JobRunnable {
             }
 
             if (config.isFilterScannerResults()) {
+                log.info("Removing duplicate findings");
                 removeDuplicateScanResults(resultFindings);
             }
 
@@ -290,6 +291,8 @@ public class EngineWorkerJob implements JobRunnable {
             return;
         }
 
+        log.info("Finding count before duplicate removal: '{}'", findings.size());
+
         Set<String> uniqueUrls = new HashSet<>();
 
         Set<Finding> findingSet = new HashSet<>();
@@ -302,6 +305,8 @@ public class EngineWorkerJob implements JobRunnable {
         }
         findings.clear();
         findings.addAll(findingSet);
+
+        log.info("Finding count after duplicate removal: '{}'", findings.size());
     }
 
     public static void removeDuplicateSpiderResults(List<Finding> findings) {

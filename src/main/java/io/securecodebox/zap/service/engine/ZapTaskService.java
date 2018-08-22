@@ -68,6 +68,7 @@ public class ZapTaskService extends TaskService {
 
     public List<Finding> createFindings(String zapResult) {
 
+        log.info("Deserializing results to findings.");
         ObjectMapper objectMapper = new ObjectMapper();
         try {
             return objectMapper.readValue(zapResult, objectMapper.getTypeFactory()
