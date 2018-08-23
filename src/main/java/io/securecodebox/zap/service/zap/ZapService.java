@@ -164,18 +164,21 @@ public class ZapService implements StatusDetailIndicator {
      * @param target the Target containing a sitemap with all requests to recall
      */
     public void recallTarget(Target target) {
-        if (target.getAttributes().getSitemap() == null) {
+        List<Map<String, Object>> sitemap = target.getAttributes().getSitemap();
+        if (sitemap == null) {
             return;
         }
 
         ObjectMapper objMapper = new ObjectMapper();
 
-        for (Map<String, Object> entry : target.getAttributes().getSitemap()) {
+        log.info("Recalling {} requests to zap.", sitemap.size());
+
+        for (Map<String, Object> entry : sitemap) {
             try {
                 String requestHar = objMapper.writeValueAsString(entry);
                 byte[] response = api.core.sendHarRequest(requestHar, "");
                 String msg = new String(response);
-                log.info("Recalled target to ZAP with following response {}", msg);
+                log.debug("Recalled target to ZAP with following response {}", msg);
             } catch (JsonProcessingException e) {
                 log.error("Couldn't convert Har Request Object to JSON string!", e);
             } catch (ClientApiException e) {
@@ -213,8 +216,6 @@ public class ZapService implements StatusDetailIndicator {
      */
     public Object startScannerAsUser(String targetUrl, String contextId, String userId) throws ClientApiException {
         log.info("Starting scanner for targetUrl '{}' and userId {}.", targetUrl, userId);
-
-        api.accessUrl(targetUrl);
 
         api.ascan.enableAllScanners(null);
         api.ascan.setOptionHandleAntiCSRFTokens(true);
@@ -315,6 +316,7 @@ public class ZapService implements StatusDetailIndicator {
         log.info("Found #{} alerts for targetUrl: {}", result.size(), targetUrl);
 
         try {
+            log.info("Serializing alerts as json string.");
             return new ObjectMapper().writeValueAsString(findings);
         } catch (JsonProcessingException e) {
             log.error("Couldn't convert List<Alert> to JSON string!", e);
@@ -349,9 +351,9 @@ public class ZapService implements StatusDetailIndicator {
                 return (JSONObject) entries.get(0);
             }
         } catch (ClientApiException e) {
-            log.warn("Could not fetch Request HAR Object from ZAP.");
+            log.warn("Could not fetch Request HAR Object from ZAP.", e.getMessage());
         } catch (ParseException e) {
-            log.warn("Could not parse Request HAR Object returned from ZAP.");
+            log.warn("Could not parse Request HAR Object returned from ZAP.", e.getMessage());
         }
         return null;
     }

@@ -81,32 +81,32 @@ public class EngineWorkerJob implements JobRunnable {
 
         //if there is a spider task available
         if (spiderTask != null) {
-            publisher.info(String.format("Fetched spider task: %s", spiderTask.toString()));
+            publisher.info(String.format("Fetched spider task: %s", spiderTask.getJobId()));
 
             //execute the spider task
             try {
                 performSpiderTask(publisher, spiderTask);
             } catch (ClientApiException | RuntimeException e) {
                 log.error("Job execution error!", e);
-                taskService.reportFailure(e, spiderTask);
+                taskService.reportFailure(spiderTask.getJobId(), "Spider Job execution error");
             } catch (UnsupportedEncodingException e) {
                 log.error("Couldn't define session management!", e);
-                taskService.reportFailure(e, spiderTask);
+                taskService.reportFailure(spiderTask.getJobId(), "Could not define session management");
             }
         } else {
             publisher.info("No spider tasks fetched.");
         }
 
         if (scannerTask != null) {
-            publisher.info(String.format("Fetched scanner task: %s", scannerTask.toString()));
+            publisher.info(String.format("Fetched scanner task: %s", scannerTask.getJobId()));
             try {
                 performScannerTask(publisher, scannerTask);
             } catch (ClientApiException | RuntimeException e) {
                 log.error("Job execution error!", e);
-                taskService.reportFailure(e, scannerTask);
+                taskService.reportFailure(scannerTask.getJobId(), "Scanner Job Execution error");
             } catch (UnsupportedEncodingException e) {
                 log.error("Couldn't define session management!", e);
-                taskService.reportFailure(e, scannerTask);
+                taskService.reportFailure(scannerTask.getJobId(), "Could not define session management");
             }
         } else {
             publisher.info("No scanner tasks fetched.");
@@ -126,9 +126,9 @@ public class EngineWorkerJob implements JobRunnable {
         List<Finding> resultFindings = new LinkedList<>();
         StringBuilder rawFindings = new StringBuilder("[");
 
-        log.info("Starting Spider Task with targets: {}", task.getTargets());
-
         for (Target target : task.getTargets()) {
+            log.info("Starting Spider Task with targets: '{}'", target.getLocation());
+
             ZapTargetAttributes attributes = target.getAttributes();
 
             //Create a new Context for each target
@@ -166,9 +166,8 @@ public class EngineWorkerJob implements JobRunnable {
         List<Finding> resultFindings = new LinkedList<>();
         StringBuilder rawFindings = new StringBuilder("[");
 
-        log.info("Starting Scanner Task with targets: {}", task.getTargets());
-
         for (Target target : task.getTargets()) {
+            log.info("Starting Scanner Task against target: '{}'", target.getLocation());
 
             String contextId = configureScannerContext(target.getAttributes().getBaseUrl(), target);
 
@@ -184,6 +183,7 @@ public class EngineWorkerJob implements JobRunnable {
             }
 
             if (config.isFilterScannerResults()) {
+                log.info("Removing duplicate findings");
                 removeDuplicateScanResults(resultFindings);
             }
 
@@ -259,7 +259,7 @@ public class EngineWorkerJob implements JobRunnable {
         resultFindings.addAll(scannerResults);
         rawFindings.append(result).append(",");
 
-        log.info("Scan Results for target {}: {}", target.getLocation(), resultFindings);
+        log.info("Scan Results for target {}: {} findings", target.getLocation(), resultFindings.size());
     }
 
     private void completeTask(ZapTask task, JobEventPublisher publisher, List<Finding> findings, StringBuilder rawFindings, ZapTopic zapTopic) throws ClientApiException {
@@ -269,7 +269,7 @@ public class EngineWorkerJob implements JobRunnable {
         }
         rawFindings.append("]");
         CompleteTask completedTask = taskService.completeTask(task, findings, rawFindings.toString(), zapTopic);
-        publisher.info("Completed " + ((zapTopic == ZapTopic.ZAP_SCANNER) ? "scanner" : "spider") + " task: " + completedTask);
+        publisher.info("Completed " + ((zapTopic == ZapTopic.ZAP_SCANNER) ? "scanner" : "spider") + " task: " + completedTask.getJobId());
 
         service.clearSession();
     }
@@ -291,6 +291,8 @@ public class EngineWorkerJob implements JobRunnable {
             return;
         }
 
+        log.info("Finding count before duplicate removal: '{}'", findings.size());
+
         Set<String> uniqueUrls = new HashSet<>();
 
         Set<Finding> findingSet = new HashSet<>();
@@ -303,6 +305,8 @@ public class EngineWorkerJob implements JobRunnable {
         }
         findings.clear();
         findings.addAll(findingSet);
+
+        log.info("Finding count after duplicate removal: '{}'", findings.size());
     }
 
     public static void removeDuplicateSpiderResults(List<Finding> findings) {

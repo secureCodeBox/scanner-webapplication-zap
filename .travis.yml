@@ -23,13 +23,8 @@ script:
   - docker images
 
 deploy:
-  -  provider: script
-     skip_cleanup: true
-     script: bash deploy.sh
-     on:
-       branch: develop
-  -  provider: script
-     skip_cleanup: true
-     script: bash deploy.sh
-     on:
-       branch: master
+  - provider: script
+    skip_cleanup: true
+    script: bash deploy.sh
+    on:
+      all_branches: true

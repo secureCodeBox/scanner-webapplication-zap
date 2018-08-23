@@ -78,25 +78,6 @@ public class EngineTaskApiClient {
         log.info("EngineApiClient is using {} as Engine Base URL.", config.getProcessEngineApiUrl());
     }
 
-    int getTaskCountByTopic(ZapTopic topicName) {
-        String url = config.getProcessEngineApiUrl() + "/count?topicName=" + topicName;
-        log.debug("Call getTaskCountByTopic() via {}", url);
-
-        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-        Map<String, Object> result = jsonStringToMap(response.getBody());
-
-        if (response.getStatusCode().is2xxSuccessful() && response.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_JSON)) {
-            if (result.size() == 1 && result.containsKey("count")) {
-                return Integer.parseInt(result.get("count").toString());
-            } else {
-                throw new ResourceAccessException("Status Code");
-            }
-        } else {
-            log.error("HTTP response error: {}", response.getStatusCode());
-            throw new ResourceAccessException("Status Code");
-        }
-    }
-
     /**
      * Returns true if the configured SCB Engine API is available and at least one processModell is deployed.
      * @return
@@ -142,7 +123,7 @@ public class EngineTaskApiClient {
     void completeTask(CompleteTask task) {
 
         String url = config.getProcessEngineApiUrl() + "/box/jobs/" + task.getJobId() + "/result";
-        log.info("Post completeTask({}) via {}", task, url);
+        log.debug("Post completeTask({}) via {}", task.getJobId(), url);
 
         ResponseEntity<String> completedTask = restTemplate.postForEntity(url, task, String.class);
         log.info(String.format("Completed the task: %s", task.getJobId()));
@@ -171,18 +152,5 @@ public class EngineTaskApiClient {
             log.error(String.format("Error reporting failure: %s, the return code is: %s with result: %s", failure, statusCode, completedTask.getBody()));
         }
 
-    }
-
-
-    private static Map<String, Object> jsonStringToMap(String json) {
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> map = new HashMap<>(16);
-
-        try {
-            map = mapper.readValue(json, new TypeReference<Map<String, String>>() {});
-        } catch (IOException e) {
-            log.error("Couldn't parse object to map", e);
-        }
-        return map;
     }
 }

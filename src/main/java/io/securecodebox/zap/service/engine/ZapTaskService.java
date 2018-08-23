@@ -60,17 +60,15 @@ public class ZapTaskService extends TaskService {
         return task;
     }
 
-    public void reportFailure(Exception exception, ZapTask zapTask){
+    public void reportFailure(String jobId, String message){
+        ScanFailure failure = new ScanFailure(config.getAppId(), jobId, message, "");
 
-        if(exception != null) {
-            ScanFailure failure = new ScanFailure(config.getAppId(), zapTask.getJobId(), exception.getMessage(), "Cause: " + exception.getCause());
-
-            taskApiClient.reportFailure(failure);
-        }
+        taskApiClient.reportFailure(failure);
     }
 
     public List<Finding> createFindings(String zapResult) {
 
+        log.info("Deserializing results to findings.");
         ObjectMapper objectMapper = new ObjectMapper();
         try {
             return objectMapper.readValue(zapResult, objectMapper.getTypeFactory()
