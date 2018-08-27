@@ -17,13 +17,13 @@
  *  * limitations under the License.
  *
  */
+package io.securecodebox.zap.jobs.definition;
 
 import de.otto.edison.jobs.eventbus.JobEventPublisher;
 import de.sstoehr.harreader.model.HarPostData;
 import de.sstoehr.harreader.model.HarRequest;
 import de.sstoehr.harreader.model.HttpMethod;
 import io.securecodebox.zap.configuration.ZapConfiguration;
-import io.securecodebox.zap.jobs.definition.EngineWorkerJob;
 import io.securecodebox.zap.service.engine.ZapTaskService;
 import io.securecodebox.zap.service.engine.model.CompleteTask;
 import io.securecodebox.zap.service.engine.model.Finding;
@@ -75,9 +75,9 @@ public class EngineWorkerJobTest {
     public void setUp() throws ClientApiException {
         MockitoAnnotations.initMocks(this);
         when(
-            taskService.completeTask(any(), any(), any(), any()))
-            .thenReturn(new CompleteTask("1", "1", "zap", new LinkedList<>(), "[]")
-        );
+                taskService.completeTask(any(), any(), any(), any()))
+                .thenReturn(new CompleteTask("1", "1", "zap", new LinkedList<>(), "[]")
+                );
         when(zapService.retrieveScannerResult(any(), any()))
                 .thenReturn(new ZapPartialResult(new LinkedList<>(), ""));
     }
