@@ -33,6 +33,7 @@ import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.model.Finding;
 import io.securecodebox.zap.service.engine.model.Reference;
 import io.securecodebox.zap.service.engine.model.Target;
+import io.securecodebox.zap.service.engine.model.zap.ZapPartialResult;
 import io.securecodebox.zap.service.engine.model.zap.ZapSitemapEntry;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -232,7 +233,7 @@ public class ZapService implements StatusDetailIndicator {
      *
      * @return JSON string
      */
-    public String retrieveSpiderResult(String scanId) throws ClientApiException {
+    public ZapPartialResult retrieveSpiderResult(String scanId) throws ClientApiException {
         try {
             int progress = 0;
             while (progress < 100) {
@@ -246,9 +247,9 @@ public class ZapService implements StatusDetailIndicator {
         }
 
         ApiResponse response = api.spider.fullResults(scanId);
-        Collection<Finding> spiderResult = new ArrayList<>(1);
+        List<Finding> findings = new ArrayList<>(1);
         if (response instanceof ApiResponseList) {
-            spiderResult = ((ApiResponseList) response).getItems().stream()
+            findings = ((ApiResponseList) response).getItems().stream()
                     .map(i -> ((ApiResponseList) i).getItems())
                     .flatMap(Collection::stream)
                     .filter(r -> r instanceof ApiResponseSet)
@@ -262,14 +263,9 @@ public class ZapService implements StatusDetailIndicator {
                     .collect(Collectors.toList());
         }
 
-        log.info("Found #{} spider URLs for the scanId:{}", spiderResult.size(), scanId);
+        log.info("Found #{} spider URLs for the scanId:{}", findings.size(), scanId);
 
-        try {
-            return new ObjectMapper().writeValueAsString(spiderResult);
-        } catch (JsonProcessingException e) {
-            log.error("Couldn't convert List<Finding> to JSON string!", e);
-            return "{}";
-        }
+        return new ZapPartialResult(findings, "");
     }
 
     /**
@@ -277,7 +273,7 @@ public class ZapService implements StatusDetailIndicator {
      *
      * @return JSON string
      */
-    public String retrieveScannerResult(String scanId, String targetUrl) throws ClientApiException {
+    public ZapPartialResult retrieveScannerResult(String scanId, String targetUrl) throws ClientApiException {
         try {
             int progress = 0;
             while (progress < 100) {
@@ -319,13 +315,8 @@ public class ZapService implements StatusDetailIndicator {
         }).collect(Collectors.toList());
         log.info("Found #{} alerts for targetUrl: {}", result.size(), targetUrl);
 
-        try {
-            log.info("Serializing alerts as json string.");
-            return new ObjectMapper().writeValueAsString(findings);
-        } catch (JsonProcessingException e) {
-            log.error("Couldn't convert List<Alert> to JSON string!", e);
-            return "{}";
-        }
+        // TODO gather the xml report from zap and save it as rawFindings
+        return new ZapPartialResult(findings, "");
     }
 
     private static String getSingleResult(ApiResponse response) {
