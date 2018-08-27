@@ -44,8 +44,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
@@ -203,67 +201,6 @@ public class EngineWorkerJobTest {
         }).when(taskService).completeTask(any(), any(), any(), any());
 
         engineWorkerJob.execute(eventPublisher);
-    }
-
-    @Test
-    public void testDuplicateRemovalShouldEliminateDuplicates() {
-
-        Finding f = new Finding();
-        f.setName("XSS");
-        f.setLocation("http://xss.org?x=1&q=2");
-
-        Finding f1 = new Finding();
-        f1.setName("XSS");
-        f1.setLocation("http://xss.org?x=3&q=2");
-
-        Finding f2 = new Finding();
-        f2.setName("XSS");
-        f2.setLocation("http://xss.org?x=1&q=1");
-
-        Finding f3 = new Finding();
-        f3.setName("SQL");
-        f3.setLocation("http://xss.org?x=1&q=2");
-
-        Finding f4 = new Finding();
-        f4.setName("XSS");
-        f4.setLocation("http://xss2.org?x=1&q=2");
-
-        Finding f5 = new Finding();
-        f5.setName("XSRF");
-        f5.setLocation("http://xsrf.org?x=1");
-
-        List<Finding> findings = new LinkedList<>(Arrays.asList(f, f1, f2, f3, f4, f5));
-        List<Finding> uniqueFindings = new LinkedList<>(Arrays.asList(f, f3, f4, f5));
-
-        assertEquals(6, findings.size());
-        EngineWorkerJob.removeDuplicateScanResults(findings);
-
-        assertEquals(4, findings.size());
-        assertTrue(findings.containsAll(uniqueFindings));
-        assertFalse(findings.contains(f2));
-    }
-
-    @Test
-    public void duplicateRemovalWithEmptyListShouldDoNothing() {
-        List<Finding> findings = new LinkedList<>();
-
-        EngineWorkerJob.removeDuplicateScanResults(findings);
-        assertTrue(findings.size() == 0);
-    }
-
-    @Test
-    public void duplicateRemovalWithoutAlertsShouldWork() {
-
-        Finding f = new Finding();
-        f.setLocation("http://x.org?x=1&q=2");
-
-        Finding f1 = new Finding();
-        f1.setLocation("http://x.org?x=234&q=34543");
-
-        List<Finding> findings = new LinkedList<>(Arrays.asList(f, f1));
-
-        EngineWorkerJob.removeDuplicateScanResults(findings);
-        assertTrue(findings.size() == 1);
     }
 
     private void createSpiderTask() {
