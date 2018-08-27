@@ -25,8 +25,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import de.otto.edison.jobs.definition.JobDefinition;
 import de.otto.edison.jobs.eventbus.JobEventPublisher;
 import de.otto.edison.jobs.service.JobRunnable;
-import de.sstoehr.harreader.model.HarRequest;
-import de.sstoehr.harreader.model.HttpMethod;
 import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.ZapTaskService;
 import io.securecodebox.zap.service.engine.model.CompleteTask;
@@ -36,6 +34,7 @@ import io.securecodebox.zap.service.engine.model.zap.ZapPartialResult;
 import io.securecodebox.zap.service.engine.model.zap.ZapTargetAttributes;
 import io.securecodebox.zap.service.engine.model.zap.ZapTask;
 import io.securecodebox.zap.service.engine.model.zap.ZapTopic;
+import io.securecodebox.zap.service.zap.deduplication.SpiderDuplicateReducer;
 import io.securecodebox.zap.service.zap.ZapService;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -145,12 +144,12 @@ public class EngineWorkerJob implements JobRunnable {
 
             addBaseUrlToFindings(result.getFindings(), target.getAttributes().getBaseUrl());
 
+            if (config.isFilterSpiderResults()) {
+                new SpiderDuplicateReducer().reduce(result.getFindings(), target);
+            }
+
             findings.addAll(result.getFindings());
             rawFindings.add(result.getRawFindings());
-        }
-
-        if (config.isFilterSpiderResults()) {
-            removeDuplicateSpiderResults(findings);
         }
 
         //Finish the spider task and post findings to the engine
@@ -310,44 +309,5 @@ public class EngineWorkerJob implements JobRunnable {
         findings.addAll(findingSet);
 
         log.info("Finding count after duplicate removal: '{}'", findings.size());
-    }
-
-    public static void removeDuplicateSpiderResults(List<Finding> findings) {
-
-        if (findings == null) {
-            return;
-        }
-
-        Set<String> uniqueUrls = new HashSet<>();
-        Set<Finding> findingSet = new HashSet<>();
-
-        for (Finding f : findings) {
-            if(isGet(f)){
-                String uniqueUrl = removeQueryValues(f.getLocation());
-
-                if (!uniqueUrls.contains(uniqueUrl)) {
-                    uniqueUrls.add(uniqueUrl);
-                    findingSet.add(f);
-                }
-            } else {
-                findingSet.add(f);
-            }
-        }
-        findings.clear();
-        findings.addAll(findingSet);
-    }
-
-    private static boolean isGet(Finding f) {
-        Map<String, Object> attributes = f.getAttributes();
-        if (attributes.containsKey("request")){
-            try {
-                HarRequest request = (HarRequest) attributes.get("request");
-                return request.getMethod().equals(HttpMethod.GET);
-            } catch(Exception e){
-                log.error("Could not find required 'request' attribute in the spider result.");
-                throw new RuntimeException("Could not find required 'request' attribute in the spider result.");
-            }
-        }
-        return false;
     }
 }

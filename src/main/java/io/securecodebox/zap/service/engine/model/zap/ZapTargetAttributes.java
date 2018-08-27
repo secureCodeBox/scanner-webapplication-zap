@@ -74,6 +74,12 @@ public class ZapTargetAttributes {
     @JsonProperty("ZAP_SCANNER_CONFIGURATION_TYPE")
     private String scannerConfigurationType;
 
+    /**
+     * When set rest like structures will be used in reducing duplicates from Spider results.
+     */
+    @JsonProperty("SECURECODEBOX_REDUCE_SPIDER_RESULT_ON_REST_SCHEMAS")
+    private boolean reduceSpiderOnRestSchemas = false;
+
     @JsonIgnore
     private List<String> removeEmptyAndNullValues(List<String> list){
         if (list == null) {

@@ -20,9 +20,6 @@
 package io.securecodebox.zap.jobs.definition;
 
 import de.otto.edison.jobs.eventbus.JobEventPublisher;
-import de.sstoehr.harreader.model.HarPostData;
-import de.sstoehr.harreader.model.HarRequest;
-import de.sstoehr.harreader.model.HttpMethod;
 import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.ZapTaskService;
 import io.securecodebox.zap.service.engine.model.CompleteTask;
@@ -244,49 +241,6 @@ public class EngineWorkerJobTest {
         assertEquals(4, findings.size());
         assertTrue(findings.containsAll(uniqueFindings));
         assertFalse(findings.contains(f2));
-    }
-
-    protected HarRequest createRequestObject(HttpMethod method, HarPostData payload){
-        HarRequest request = new HarRequest();
-        request.setMethod(method);
-        request.setPostData(payload);
-        return request;
-    }
-
-    @Test
-    public void testSpiderDuplicateRemovalShouldEliminateDuplicates() {
-        Finding f = new Finding();
-        f.setLocation("http://xss.org?x=1&q=2");
-        f.getAttributes().put("request", createRequestObject(HttpMethod.POST, createPayload("foo=bar")));
-
-        Finding f1 = new Finding();
-        f1.setLocation("http://xss.org?x=1&q=2");
-        f1.getAttributes().put("request", createRequestObject(HttpMethod.POST, createPayload("bar=foo")));
-
-        Finding f2 = new Finding();
-        f2.setLocation("http://xss.org?x=1&q=1");
-        f2.getAttributes().put("request", createRequestObject(HttpMethod.GET, createPayload(null)));
-
-        Finding f3 = new Finding();
-        f3.setLocation("http://xss.org?x=1&q=1");
-        f3.getAttributes().put("request", createRequestObject(HttpMethod.GET, createPayload("foobar")));
-
-        List<Finding> findings = new LinkedList<>(Arrays.asList(f, f1, f2, f3));
-        List<Finding> uniqueFindings = new LinkedList<>(Arrays.asList(f, f1, f2));
-
-        assertEquals(4, findings.size());
-
-        EngineWorkerJob.removeDuplicateSpiderResults(findings);
-
-        assertEquals(3, findings.size());
-        assertTrue(findings.containsAll(uniqueFindings));
-        assertFalse(findings.contains(f3));
-    }
-
-    protected HarPostData createPayload(String text){
-        HarPostData postData = new HarPostData();
-        postData.setText(text);
-        return postData;
     }
 
     @Test
