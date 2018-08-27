@@ -19,6 +19,9 @@
  */
 
 import de.otto.edison.jobs.eventbus.JobEventPublisher;
+import de.sstoehr.harreader.model.HarPostData;
+import de.sstoehr.harreader.model.HarRequest;
+import de.sstoehr.harreader.model.HttpMethod;
 import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.jobs.definition.EngineWorkerJob;
 import io.securecodebox.zap.service.engine.ZapTaskService;
@@ -26,6 +29,7 @@ import io.securecodebox.zap.service.engine.model.CompleteTask;
 import io.securecodebox.zap.service.engine.model.Finding;
 import io.securecodebox.zap.service.engine.model.Reference;
 import io.securecodebox.zap.service.engine.model.Target;
+import io.securecodebox.zap.service.engine.model.zap.ZapPartialResult;
 import io.securecodebox.zap.service.engine.model.zap.ZapTask;
 import io.securecodebox.zap.service.engine.model.zap.ZapTopic;
 import io.securecodebox.zap.service.zap.ZapService;
@@ -68,12 +72,14 @@ public class EngineWorkerJobTest {
     private ZapTask scannerTask;
 
     @Before
-    public void setUp() {
+    public void setUp() throws ClientApiException {
         MockitoAnnotations.initMocks(this);
         when(
             taskService.completeTask(any(), any(), any(), any()))
             .thenReturn(new CompleteTask("1", "1", "zap", new LinkedList<>(), "[]")
         );
+        when(zapService.retrieveScannerResult(any(), any()))
+                .thenReturn(new ZapPartialResult(new LinkedList<>(), ""));
     }
 
     @Test
@@ -153,7 +159,9 @@ public class EngineWorkerJobTest {
         createSpiderTask();
         List<Finding> findings = createFindings();
         String rawFindings = createRawFindings();
-        when(zapService.retrieveSpiderResult(any())).thenReturn(rawFindings);
+        ZapPartialResult partialResult = new ZapPartialResult(findings, rawFindings);
+
+        when(zapService.retrieveSpiderResult(any())).thenReturn(partialResult);
         when(taskService.createFindings(any())).thenCallRealMethod();
         doAnswer((Answer) invocation -> {
             List<Finding> result = (List<Finding>) invocation.getArguments()[1];
@@ -181,7 +189,8 @@ public class EngineWorkerJobTest {
         createScannerTask();
         List<Finding> findings = createFindings();
         String rawFindings = createRawFindingsWithDuplicate();
-        when(zapService.retrieveScannerResult(any(), any())).thenReturn(rawFindings);
+        ZapPartialResult partialResult = new ZapPartialResult(findings, rawFindings);
+        when(zapService.retrieveScannerResult(any(), any())).thenReturn(partialResult);
         when(taskService.createFindings(any())).thenCallRealMethod();
         when(config.isFilterScannerResults()).thenReturn(true);
         doAnswer((Answer) invocation -> {
@@ -237,10 +246,10 @@ public class EngineWorkerJobTest {
         assertFalse(findings.contains(f2));
     }
 
-    protected Map<String, Object> createRequestObject(String method, String payload){
-        Map<String, Object> request = new HashMap<>();
-        request.put("method", method);
-        request.put("payload", payload);
+    protected HarRequest createRequestObject(HttpMethod method, HarPostData payload){
+        HarRequest request = new HarRequest();
+        request.setMethod(method);
+        request.setPostData(payload);
         return request;
     }
 
@@ -248,19 +257,19 @@ public class EngineWorkerJobTest {
     public void testSpiderDuplicateRemovalShouldEliminateDuplicates() {
         Finding f = new Finding();
         f.setLocation("http://xss.org?x=1&q=2");
-        f.getAttributes().put("request", createRequestObject("POST", "foo=bar"));
+        f.getAttributes().put("request", createRequestObject(HttpMethod.POST, createPayload("foo=bar")));
 
         Finding f1 = new Finding();
         f1.setLocation("http://xss.org?x=1&q=2");
-        f1.getAttributes().put("request", createRequestObject("POST", "bar=foo"));
+        f1.getAttributes().put("request", createRequestObject(HttpMethod.POST, createPayload("bar=foo")));
 
         Finding f2 = new Finding();
         f2.setLocation("http://xss.org?x=1&q=1");
-        f2.getAttributes().put("request", createRequestObject("GET", null));
+        f2.getAttributes().put("request", createRequestObject(HttpMethod.GET, createPayload(null)));
 
         Finding f3 = new Finding();
         f3.setLocation("http://xss.org?x=1&q=1");
-        f3.getAttributes().put("request", createRequestObject("GET", "foobar"));
+        f3.getAttributes().put("request", createRequestObject(HttpMethod.GET, createPayload("foobar")));
 
         List<Finding> findings = new LinkedList<>(Arrays.asList(f, f1, f2, f3));
         List<Finding> uniqueFindings = new LinkedList<>(Arrays.asList(f, f1, f2));
@@ -272,6 +281,12 @@ public class EngineWorkerJobTest {
         assertEquals(3, findings.size());
         assertTrue(findings.containsAll(uniqueFindings));
         assertFalse(findings.contains(f3));
+    }
+
+    protected HarPostData createPayload(String text){
+        HarPostData postData = new HarPostData();
+        postData.setText(text);
+        return postData;
     }
 
     @Test
