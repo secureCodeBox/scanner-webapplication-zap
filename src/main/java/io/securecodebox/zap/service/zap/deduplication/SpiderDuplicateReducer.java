@@ -30,6 +30,8 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class SpiderDuplicateReducer {
+    DuplicationReductionUtil util = new DuplicationReductionUtil();
+
     public void reduce(List<Finding> findings, Target target){
         if (findings == null) {
             return;
@@ -80,7 +82,7 @@ public class SpiderDuplicateReducer {
      * @return url without parts which tend to be dynamic parameters
      */
     protected String reduceDuplicationInUrl(String url, Target target){
-        String reducedString = removeQueryValues(url);
+        String reducedString = util.removeQueryValues(url);
 
         if(target.getAttributes().isReduceSpiderOnRestSchemas()){
             reducedString = reduceParametersFromRestLikeString(reducedString);
@@ -103,16 +105,4 @@ public class SpiderDuplicateReducer {
 
         return String.join("/", urlParts);
     }
-
-    /**
-     * Removes values out of query strings in urls
-     * Example: "http://bodgeit/x=1&y=1" => "http://bodgeit/x=&y="
-     *
-     * @param url
-     * @return Query
-     */
-    String removeQueryValues(String url) {
-        return url.replaceAll("(?:=)[^&]*", "=");
-    }
-
 }

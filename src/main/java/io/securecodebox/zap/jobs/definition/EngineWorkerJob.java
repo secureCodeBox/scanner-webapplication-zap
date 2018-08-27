@@ -34,6 +34,7 @@ import io.securecodebox.zap.service.engine.model.zap.ZapPartialResult;
 import io.securecodebox.zap.service.engine.model.zap.ZapTargetAttributes;
 import io.securecodebox.zap.service.engine.model.zap.ZapTask;
 import io.securecodebox.zap.service.engine.model.zap.ZapTopic;
+import io.securecodebox.zap.service.zap.deduplication.ScanDuplicateReducer;
 import io.securecodebox.zap.service.zap.deduplication.SpiderDuplicateReducer;
 import io.securecodebox.zap.service.zap.ZapService;
 import lombok.ToString;
@@ -187,7 +188,7 @@ public class EngineWorkerJob implements JobRunnable {
 
         if (config.isFilterScannerResults()) {
             log.info("Removing duplicate findings");
-            removeDuplicateScanResults(findings);
+            new ScanDuplicateReducer().reduce(findings);
         }
 
         //Finish the scanner task and post findings to the engine
@@ -274,40 +275,5 @@ public class EngineWorkerJob implements JobRunnable {
         } catch (JsonProcessingException e) {
             log.warn("Could not persist rawFindings");
         }
-    }
-
-    /**
-     * Removes values out of query strings
-     * Example: "x=1&y=1" => "x=&y="
-     *
-     * @param queryString
-     * @return Query
-     */
-    protected static String removeQueryValues(String queryString) {
-        return queryString.replaceAll("(?:=)[^&]*", "=");
-    }
-
-    public static void removeDuplicateScanResults(List<Finding> findings) {
-
-        if (findings == null) {
-            return;
-        }
-
-        log.info("Finding count before duplicate removal: '{}'", findings.size());
-
-        Set<String> uniqueUrls = new HashSet<>();
-
-        Set<Finding> findingSet = new HashSet<>();
-        for (Finding f : findings) {
-            String uniqueUrl = removeQueryValues(f.getLocation()) + "_" + f.getName();
-            if (!uniqueUrls.contains(uniqueUrl)) {
-                uniqueUrls.add(uniqueUrl);
-                findingSet.add(f);
-            }
-        }
-        findings.clear();
-        findings.addAll(findingSet);
-
-        log.info("Finding count after duplicate removal: '{}'", findings.size());
     }
 }
