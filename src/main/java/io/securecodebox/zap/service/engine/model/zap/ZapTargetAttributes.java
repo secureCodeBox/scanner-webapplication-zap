@@ -33,7 +33,7 @@ public class ZapTargetAttributes {
     private String baseUrl;
 
     @JsonProperty("ZAP_SITEMAP")
-    private List<Map<String, Object>> sitemap = new LinkedList<>();
+    private List<ZapSitemapEntry> sitemap = new LinkedList<>();
 
     @JsonProperty("ZAP_SPIDER_MAX_DEPTH")
     private Integer spiderMaxDepth;
