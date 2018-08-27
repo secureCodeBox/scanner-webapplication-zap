@@ -315,8 +315,9 @@ public class ZapService implements StatusDetailIndicator {
         }).collect(Collectors.toList());
         log.info("Found #{} alerts for targetUrl: {}", result.size(), targetUrl);
 
-        // TODO gather the xml report from zap and save it as rawFindings
-        return new ZapPartialResult(findings, "");
+        String rawFindings = new String(api.core.xmlreport());
+
+        return new ZapPartialResult(findings, rawFindings);
     }
 
     private static String getSingleResult(ApiResponse response) {
