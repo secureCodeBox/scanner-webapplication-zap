@@ -20,8 +20,6 @@
 
 package io.securecodebox.zap.service.engine;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.model.CompleteTask;
 import io.securecodebox.zap.service.engine.model.ScanFailure;
@@ -30,22 +28,19 @@ import io.securecodebox.zap.service.engine.model.zap.ZapTopic;
 import io.securecodebox.zap.util.BasicAuthRestTemplate;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.http.HttpRequestFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
+import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.PostConstruct;
-import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 
 /**
  * Consumes and integrates the Camunda process engine API for external tasks.
@@ -58,6 +53,11 @@ public class EngineTaskApiClient {
     private final ZapConfiguration config;
     private RestTemplate restTemplate;
 
+    /**
+     * Request Timeout duration in milli sec.
+     */
+    static final int REQUEST_TIMEOUT = 5 * 1000;
+
 
     @Autowired
     public EngineTaskApiClient(ZapConfiguration config) {
@@ -69,9 +69,15 @@ public class EngineTaskApiClient {
 
         log.info("initiating REST template for user {}", config.getCamundaUsername());
 
-        restTemplate = (config.getCamundaUsername() != null && config.getCamundaPassword() != null)
-                ? new BasicAuthRestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()), config.getCamundaUsername(), config.getCamundaPassword())
-                : new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(REQUEST_TIMEOUT);
+        BufferingClientHttpRequestFactory bufferingRequestFactory= new BufferingClientHttpRequestFactory(requestFactory);
+
+        if(config.getCamundaUsername() != null && config.getCamundaPassword() != null){
+            restTemplate = new BasicAuthRestTemplate(bufferingRequestFactory, config.getCamundaUsername(), config.getCamundaPassword());
+        } else {
+            restTemplate = new RestTemplate(bufferingRequestFactory);
+        }
 
         restTemplate.setInterceptors(Collections.singletonList(new LoggingRequestInterceptor()));
 
