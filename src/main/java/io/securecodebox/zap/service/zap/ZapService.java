@@ -33,7 +33,6 @@ import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.model.Finding;
 import io.securecodebox.zap.service.engine.model.Reference;
 import io.securecodebox.zap.service.engine.model.Target;
-import io.securecodebox.zap.service.engine.model.zap.ZapPartialResult;
 import io.securecodebox.zap.service.engine.model.zap.ZapSitemapEntry;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -233,7 +232,7 @@ public class ZapService implements StatusDetailIndicator {
      *
      * @return JSON string
      */
-    public ZapPartialResult retrieveSpiderResult(String scanId) throws ClientApiException {
+    public List<Finding> retrieveSpiderResult(String scanId) throws ClientApiException {
         try {
             int progress = 0;
             while (progress < 100) {
@@ -265,7 +264,7 @@ public class ZapService implements StatusDetailIndicator {
 
         log.info("Found #{} spider URLs for the scanId:{}", findings.size(), scanId);
 
-        return new ZapPartialResult(findings, "");
+        return findings;
     }
 
     /**
@@ -273,7 +272,7 @@ public class ZapService implements StatusDetailIndicator {
      *
      * @return JSON string
      */
-    public ZapPartialResult retrieveScannerResult(String scanId, String targetUrl) throws ClientApiException {
+    public List<Finding> retrieveScannerResult(String scanId, String targetUrl) throws ClientApiException {
         try {
             int progress = 0;
             while (progress < 100) {
@@ -315,9 +314,7 @@ public class ZapService implements StatusDetailIndicator {
         }).collect(Collectors.toList());
         log.info("Found #{} alerts for targetUrl: {}", result.size(), targetUrl);
 
-        String rawFindings = new String(api.core.xmlreport());
-
-        return new ZapPartialResult(findings, rawFindings);
+        return findings;
     }
 
     private static String getSingleResult(ApiResponse response) {

@@ -28,7 +28,6 @@ import io.securecodebox.zap.service.engine.model.CompleteTask;
 import io.securecodebox.zap.service.engine.model.Finding;
 import io.securecodebox.zap.service.engine.model.Reference;
 import io.securecodebox.zap.service.engine.model.Target;
-import io.securecodebox.zap.service.engine.model.zap.ZapPartialResult;
 import io.securecodebox.zap.service.engine.model.zap.ZapTask;
 import io.securecodebox.zap.service.engine.model.zap.ZapTopic;
 import io.securecodebox.zap.service.zap.ZapService;
@@ -75,7 +74,7 @@ public class EngineWorkerJobTest {
                 .thenReturn(new CompleteTask("1", "1", "zap", new LinkedList<>(), "[]")
                 );
         when(zapService.retrieveScannerResult(any(), any()))
-                .thenReturn(new ZapPartialResult(new LinkedList<>(), ""));
+                .thenReturn(new LinkedList<>());
     }
 
     @Test
@@ -145,9 +144,8 @@ public class EngineWorkerJobTest {
     @Test
     public void testRemovedDuplicatesFromSpiderResult() throws ClientApiException {
         createSpiderTask();
-        ZapPartialResult partialResult = new ZapPartialResult(createFindingsWithDuplicates(), "");
 
-        when(zapService.retrieveSpiderResult(any())).thenReturn(partialResult);
+        when(zapService.retrieveSpiderResult(any())).thenReturn(createFindingsWithDuplicates());
         when(taskService.createFindings(any())).thenCallRealMethod();
         when(config.isFilterSpiderResults()).thenReturn(true);
 
@@ -163,8 +161,7 @@ public class EngineWorkerJobTest {
     @Test
     public void testRemovedDuplicatesFromScannerResult() throws ClientApiException {
         createScannerTask();
-        ZapPartialResult partialResult = new ZapPartialResult(createFindingsWithDuplicates(), "");
-        when(zapService.retrieveScannerResult(any(), any())).thenReturn(partialResult);
+        when(zapService.retrieveScannerResult(any(), any())).thenReturn(createFindingsWithDuplicates());
         when(taskService.createFindings(any())).thenCallRealMethod();
         when(config.isFilterScannerResults()).thenReturn(true);
         doAnswer(invocation -> {

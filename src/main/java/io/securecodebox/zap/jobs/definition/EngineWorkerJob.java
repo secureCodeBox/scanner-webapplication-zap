@@ -30,7 +30,6 @@ import io.securecodebox.zap.service.engine.ZapTaskService;
 import io.securecodebox.zap.service.engine.model.CompleteTask;
 import io.securecodebox.zap.service.engine.model.Finding;
 import io.securecodebox.zap.service.engine.model.Target;
-import io.securecodebox.zap.service.engine.model.zap.ZapPartialResult;
 import io.securecodebox.zap.service.engine.model.zap.ZapTargetAttributes;
 import io.securecodebox.zap.service.engine.model.zap.ZapTask;
 import io.securecodebox.zap.service.engine.model.zap.ZapTopic;
@@ -142,15 +141,15 @@ public class EngineWorkerJob implements JobRunnable {
                     attributes.getSpiderIncludeRegex(), attributes.getSpiderExcludeRegex());
 
             String userId = configureAuthentication(target, contextId);
-            ZapPartialResult result = executeSpider(target, contextId, userId);
+            List<Finding> result = executeSpider(target, contextId, userId);
 
-            addBaseUrlToFindings(result.getFindings(), target.getAttributes().getBaseUrl());
+            addBaseUrlToFindings(result, target.getAttributes().getBaseUrl());
 
             if (config.isFilterSpiderResults()) {
-                new SpiderDuplicateReducer().reduce(result.getFindings(), target);
+                new SpiderDuplicateReducer().reduce(result, target);
             }
 
-            findings.addAll(result.getFindings());
+            findings.addAll(result);
         }
 
         //Finish the spider task and post findings to the engine
@@ -178,11 +177,11 @@ public class EngineWorkerJob implements JobRunnable {
             service.recallTarget(target);
 
             String userId = configureAuthentication(target, contextId);
-            ZapPartialResult result = executeScanner(target, contextId, userId);
+            List<Finding> result = executeScanner(target, contextId, userId);
 
-            addBaseUrlToFindings(result.getFindings(), target.getAttributes().getBaseUrl());
+            addBaseUrlToFindings(result, target.getAttributes().getBaseUrl());
 
-            findings.addAll(result.getFindings());
+            findings.addAll(result);
         }
 
         // Save only one Raw Report, as zap doesn't support to get reports on the individual targets.
@@ -216,7 +215,7 @@ public class EngineWorkerJob implements JobRunnable {
         }
     }
 
-    private ZapPartialResult executeSpider(Target target, String contextId, String userId) throws ClientApiException {
+    private List<Finding> executeSpider(Target target, String contextId, String userId) throws ClientApiException {
         String spiderApiSpecUrl = computeSpiderApiSpecUrl(
                 target.getAttributes().getSpiderApiSpecUrl()
         );
@@ -228,7 +227,7 @@ public class EngineWorkerJob implements JobRunnable {
         return service.retrieveSpiderResult(scanId);
     }
 
-    private ZapPartialResult executeScanner(Target target, String contextId, String userId) throws ClientApiException {
+    private List<Finding> executeScanner(Target target, String contextId, String userId) throws ClientApiException {
         log.info("Start Scanner with URL: " + target.getLocation());
         service.recallTarget(target);
         String scanId = (String) service.startScannerAsUser(target.getLocation(), contextId, userId);
