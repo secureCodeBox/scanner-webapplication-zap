@@ -20,6 +20,8 @@
 package io.securecodebox.zap.jobs.definition;
 
 import de.otto.edison.jobs.eventbus.JobEventPublisher;
+import de.sstoehr.harreader.model.HarRequest;
+import de.sstoehr.harreader.model.HttpMethod;
 import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.ZapTaskService;
 import io.securecodebox.zap.service.engine.model.CompleteTask;
@@ -37,7 +39,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
 import org.zaproxy.clientapi.core.ClientApiException;
 
 import java.io.UnsupportedEncodingException;
@@ -141,66 +142,59 @@ public class EngineWorkerJobTest {
         verify(zapService, times(1)).configureAuthentication(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
-    /**
-     * Tests if the spider task gets executed correctly and transforms the raw results into correct findings
-     * As the part of the spidering we are testing here is equal to the corresponding part of the scanning (and we mock
-     * the results here) , a test for the scanner isn't necessary
-     *
-     * @throws ClientApiException
-     */
     @Test
-    public void testCorrectResultsWithoutDuplicates() throws ClientApiException {
-
+    public void testRemovedDuplicatesFromSpiderResult() throws ClientApiException {
         createSpiderTask();
-        List<Finding> findings = createFindings();
-        String rawFindings = createRawFindings();
-        ZapPartialResult partialResult = new ZapPartialResult(findings, rawFindings);
+        ZapPartialResult partialResult = new ZapPartialResult(createFindingsWithDuplicates(), "");
 
         when(zapService.retrieveSpiderResult(any())).thenReturn(partialResult);
         when(taskService.createFindings(any())).thenCallRealMethod();
-        doAnswer((Answer) invocation -> {
+        when(config.isFilterSpiderResults()).thenReturn(true);
+
+        doAnswer(invocation -> {
             List<Finding> result = (List<Finding>) invocation.getArguments()[1];
-            assertTrue(result.size() == findings.size());
-            assertTrue(result.stream().map(Finding::getLocation).collect(Collectors.toList()).containsAll(
-                    findings.stream().map(Finding::getLocation).collect(Collectors.toList())
-            ));
-            assertTrue(findings.stream().map(Finding::getLocation).collect(Collectors.toList()).containsAll(
-                    result.stream().map(Finding::getLocation).collect(Collectors.toList())
-            ));
+            assertTrue(findingsAreEqual(createFindings(), result));
             return null;
         }).when(taskService).completeTask(any(), any(), any(), any());
 
         engineWorkerJob.execute(eventPublisher);
     }
 
-    /**
-     * This is also the same for spider and scanner
-     *
-     * @throws ClientApiException
-     */
     @Test
-    public void testDuplicateRemovedWhenFinishedScanning() throws ClientApiException {
-
+    public void testRemovedDuplicatesFromScannerResult() throws ClientApiException {
         createScannerTask();
-        List<Finding> findings = createFindings();
-        String rawFindings = createRawFindingsWithDuplicate();
-        ZapPartialResult partialResult = new ZapPartialResult(findings, rawFindings);
+        ZapPartialResult partialResult = new ZapPartialResult(createFindingsWithDuplicates(), "");
         when(zapService.retrieveScannerResult(any(), any())).thenReturn(partialResult);
         when(taskService.createFindings(any())).thenCallRealMethod();
         when(config.isFilterScannerResults()).thenReturn(true);
-        doAnswer((Answer) invocation -> {
+        doAnswer(invocation -> {
             List<Finding> result = (List<Finding>) invocation.getArguments()[1];
-            assertTrue(result.size() == findings.size());
-            assertTrue(result.stream().map(Finding::getLocation).collect(Collectors.toList()).containsAll(
-                    findings.stream().map(Finding::getLocation).collect(Collectors.toList())
-            ));
-            assertTrue(findings.stream().map(Finding::getLocation).collect(Collectors.toList()).containsAll(
-                    result.stream().map(Finding::getLocation).collect(Collectors.toList())
-            ));
+            assertTrue(findingsAreEqual(createFindings(), result));
             return null;
         }).when(taskService).completeTask(any(), any(), any(), any());
 
         engineWorkerJob.execute(eventPublisher);
+    }
+
+    private boolean findingsAreEqual(List<Finding> findings1, List<Finding> findings2) {
+        return findings1.size() == findings2.size()
+                && findings1.stream()
+                .map(Finding::getLocation)
+                .collect(Collectors.toList())
+                .containsAll(
+                        findings2.stream()
+                                .map(Finding::getLocation)
+                                .collect(Collectors.toList())
+                )
+                && findings2.stream()
+                .map(Finding::getLocation)
+                .collect(Collectors.toList())
+                .containsAll(
+                    findings1.stream()
+                            .map(Finding::getLocation)
+                            .collect(Collectors.toList()
+                )
+        );
     }
 
     private void createSpiderTask() {
@@ -235,6 +229,36 @@ public class EngineWorkerJobTest {
         when(taskService.getTask(ZapTopic.ZAP_SCANNER)).thenReturn(scannerTask);
     }
 
+    private List<Finding> createFindingsWithDuplicates() {
+
+        List<Finding> findings = createFindings();
+
+        Finding f3 = new Finding();
+        f3.setName("Epic Finding");
+        f3.setDescription("I'm a Finding");
+        f3.setCategory("EPIC");
+        f3.setReference(new Reference("http://theMostImportantSiteEver.org"));
+        f3.setLocation("http://locationOfSecurityDeath.org");
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("BEER", "nice");
+        attributes.put("NullpointerException", "Oh No!");
+        attributes.put("ZAP_BASE_URL", "http://aSeriousUrl.com");
+        attributes.put("request", createRequest(f3.getLocation()));
+
+        f3.setAttributes(attributes);
+
+        findings.add(f3);
+
+        return findings;
+    }
+
+    private HarRequest createRequest(String url){
+        HarRequest request = new HarRequest();
+        request.setMethod(HttpMethod.GET);
+        request.setUrl(url);
+        return request;
+    }
+
     private List<Finding> createFindings() {
 
         List<Finding> findings = new LinkedList<>();
@@ -249,6 +273,7 @@ public class EngineWorkerJobTest {
         attributes.put("BEER", "nice");
         attributes.put("NullpointerException", "Oh No!");
         attributes.put("ZAP_BASE_URL", "http://aSeriousUrl.com");
+        attributes.put("request", createRequest(f1.getLocation()));
         f1.setAttributes(attributes);
 
         Finding f2 = new Finding();
@@ -261,93 +286,13 @@ public class EngineWorkerJobTest {
         attributes2.put("CAKE", "amazing");
         attributes2.put("NullpointerException", "Oh No not again!");
         attributes2.put("ZAP_BASE_URL", "http://aSeriousUrl.com");
+        attributes.put("request", createRequest(f2.getLocation()));
+
         f2.setAttributes(attributes2);
 
         findings.add(f1);
         findings.add(f2);
 
         return findings;
-    }
-
-    private String createRawFindings() {
-        return
-                "[" +
-                        "{" +
-                        "\"id\":\"49bf7fd3-8512-4d73-a28f-608e493cd726\"," +
-                        "\"name\":\"Epic Finding\"," +
-                        "\"description\":\"I'm a Finding\"," +
-                        "\"category\":\"EPIC\"," +
-                        "\"reference\":\"http://theMostImportantSiteEver.org\"," +
-                        "\"attributes\":" +
-                        "{" +
-                        "\"BEER\":\"nice\"," +
-                        "\"NullpointerException\":\"Oh No!\"," +
-                        "\"ZAP_BASE_URL\":\"http://aSeriousUrl.com\"" +
-                        "}," +
-                        "\"location\":\"http://locationOfSecurityDeath.org\"" +
-                        "}," +
-                        "{" +
-                        "\"id\":\"49bf7fd3-8512-4d73-a28f-608e493cd726\"," +
-                        "\"name\":\"More Epic Finding\"," +
-                        "\"description\":\"I'm the best Finding\"," +
-                        "\"category\":\"MASSIVE EPICNESS\"," +
-                        "\"reference\":\"http://dontlookatme.org\"," +
-                        "\"attributes\":" +
-                        "{" +
-                        "\"CAKE\":\"amazing\"," +
-                        "\"NullpointerException\":\"Oh No not again!\"," +
-                        "\"ZAP_BASE_URL\":\"http://aSeriousUrl.com\"" +
-                        "}," +
-                        "\"location\":\"http://yourOwnFaultToVisitMe.org\"" +
-                        "}" +
-                        "]";
-    }
-
-    private String createRawFindingsWithDuplicate() {
-        return
-                "[" +
-                        "{" +
-                        "\"id\":\"49bf7fd3-8512-4d73-a28f-608e493cd726\"," +
-                        "\"name\":\"Epic Finding\"," +
-                        "\"description\":\"I'm a Finding\"," +
-                        "\"category\":\"EPIC\"," +
-                        "\"reference\":\"http://theMostImportantSiteEver.org\"," +
-                        "\"attributes\":" +
-                        "{" +
-                        "\"BEER\":\"nice\"," +
-                        "\"NullpointerException\":\"Oh No!\"," +
-                        "\"ZAP_BASE_URL\":\"http://aSeriousUrl.com\"" +
-                        "}," +
-                        "\"location\":\"http://locationOfSecurityDeath.org\"" +
-                        "}," +
-                        "{" +
-                        "\"id\":\"49bf7fd3-8512-4d73-a28f-608e493cd726\"," +
-                        "\"name\":\"Epic Finding\"," +
-                        "\"description\":\"I'm a Finding\"," +
-                        "\"category\":\"EPIC\"," +
-                        "\"reference\":\"http://theMostImportantSiteEver.org\"," +
-                        "\"attributes\":" +
-                        "{" +
-                        "\"BEER\":\"nice\"," +
-                        "\"NullpointerException\":\"Oh No!\"," +
-                        "\"ZAP_BASE_URL\":\"http://aSeriousUrl.com\"" +
-                        "}," +
-                        "\"location\":\"http://locationOfSecurityDeath.org\"" +
-                        "}," +
-                        "{" +
-                        "\"id\":\"49bf7fd3-8512-4d73-a28f-608e493cd726\"," +
-                        "\"name\":\"More Epic Finding\"," +
-                        "\"description\":\"I'm the best Finding\"," +
-                        "\"category\":\"MASSIVE EPICNESS\"," +
-                        "\"reference\": \"http://dontlookatme.org\"," +
-                        "\"attributes\":" +
-                        "{" +
-                        "\"CAKE\":\"amazing\"," +
-                        "\"NullpointerException\":\"Oh No not again!\"," +
-                        "\"ZAP_BASE_URL\":\"http://aSeriousUrl.com\"" +
-                        "}," +
-                        "\"location\":\"http://yourOwnFaultToVisitMe.org\"" +
-                        "}" +
-                        "]";
     }
 }
