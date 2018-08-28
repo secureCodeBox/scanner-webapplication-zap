@@ -129,6 +129,7 @@ public class EngineWorkerJob implements JobRunnable {
     private void performSpiderTask(JobEventPublisher publisher, ZapTask task) throws ClientApiException, UnsupportedEncodingException {
 
         List<Finding> findings = new LinkedList<>();
+        // RawFindings will remain empty in spider Task as it isn't usefull here.
         List<String> rawFindings = new LinkedList<>();
 
         for (Target target : task.getTargets()) {
@@ -150,7 +151,6 @@ public class EngineWorkerJob implements JobRunnable {
             }
 
             findings.addAll(result.getFindings());
-            rawFindings.add(result.getRawFindings());
         }
 
         //Finish the spider task and post findings to the engine
@@ -183,8 +183,10 @@ public class EngineWorkerJob implements JobRunnable {
             addBaseUrlToFindings(result.getFindings(), target.getAttributes().getBaseUrl());
 
             findings.addAll(result.getFindings());
-            rawFindings.add(result.getRawFindings());
         }
+
+        // Save only one Raw Report, as zap doesn't support to get reports on the individual targets.
+        rawFindings.add(service.getRawReport());
 
         if (config.isFilterScannerResults()) {
             log.info("Removing duplicate findings");

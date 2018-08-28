@@ -385,4 +385,8 @@ public class ZapService implements StatusDetailIndicator {
     public String getVersion() throws ClientApiException {
         return getSingleResult(api.core.version());
     }
+
+    public String getRawReport() throws ClientApiException {
+        return new String(api.core.xmlreport());
+    }
 }
