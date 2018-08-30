@@ -1,4 +1,4 @@
-FROM gradle:alpine as builder
+FROM gradle:4.9-alpine as builder
 USER root
 COPY . .
 

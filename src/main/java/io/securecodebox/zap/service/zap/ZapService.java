@@ -25,17 +25,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import de.otto.edison.status.domain.Status;
 import de.otto.edison.status.domain.StatusDetail;
 import de.otto.edison.status.indicator.StatusDetailIndicator;
+import de.sstoehr.harreader.HarReader;
+import de.sstoehr.harreader.HarReaderException;
+import de.sstoehr.harreader.model.Har;
+import de.sstoehr.harreader.model.HarRequest;
 import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.model.Finding;
 import io.securecodebox.zap.service.engine.model.Reference;
 import io.securecodebox.zap.service.engine.model.Target;
-import io.securecodebox.zap.service.zap.model.SpiderResult;
+import io.securecodebox.zap.service.engine.model.zap.ZapSitemapEntry;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.zaproxy.clientapi.core.*;
@@ -164,8 +164,9 @@ public class ZapService implements StatusDetailIndicator {
      * @param target the Target containing a sitemap with all requests to recall
      */
     public void recallTarget(Target target) {
-        List<Map<String, Object>> sitemap = target.getAttributes().getSitemap();
+        List<ZapSitemapEntry> sitemap = target.getAttributes().getSitemap();
         if (sitemap == null) {
+            log.warn("Tried to recall a empty sitemap to Zap. The scan will fail as it will not have any targets to scan!");
             return;
         }
 
@@ -173,7 +174,7 @@ public class ZapService implements StatusDetailIndicator {
 
         log.info("Recalling {} requests to zap.", sitemap.size());
 
-        for (Map<String, Object> entry : sitemap) {
+        for (ZapSitemapEntry entry : sitemap) {
             try {
                 String requestHar = objMapper.writeValueAsString(entry);
                 byte[] response = api.core.sendHarRequest(requestHar, "");
@@ -231,7 +232,7 @@ public class ZapService implements StatusDetailIndicator {
      *
      * @return JSON string
      */
-    public String retrieveSpiderResult(String scanId) throws ClientApiException {
+    public List<Finding> retrieveSpiderResult(String scanId) throws ClientApiException {
         try {
             int progress = 0;
             while (progress < 100) {
@@ -245,27 +246,25 @@ public class ZapService implements StatusDetailIndicator {
         }
 
         ApiResponse response = api.spider.fullResults(scanId);
-        Collection<SpiderResult> spiderResult = new ArrayList<>(1);
+        List<Finding> findings = new ArrayList<>(1);
         if (response instanceof ApiResponseList) {
-            spiderResult = ((ApiResponseList) response).getItems().stream()
+            findings = ((ApiResponseList) response).getItems().stream()
                     .map(i -> ((ApiResponseList) i).getItems())
                     .flatMap(Collection::stream)
                     .filter(r -> r instanceof ApiResponseSet)
-                    .map(r -> new SpiderResult((ApiResponseSet) r))
+                    .map(r -> {
+                        Finding finding = new Finding();
+                        HarRequest harRequest = getHarRequestPortionForRequest(((ApiResponseSet)r).getStringValue("messageId"));
+                        finding.setLocation(harRequest.getUrl());
+                        finding.getAttributes().put("request", harRequest);
+                        return finding;
+                    })
                     .collect(Collectors.toList());
         }
 
-        List<Map<String, Object>> result = spiderResult.isEmpty()
-                ? Collections.emptyList()
-                : getHarInformationForSpiderResults(spiderResult);
-        log.info("Found #{} spider URLs for the scanId:{}", result.size(), scanId);
+        log.info("Found #{} spider URLs for the scanId:{}", findings.size(), scanId);
 
-        try {
-            return new ObjectMapper().writeValueAsString(result);
-        } catch (JsonProcessingException e) {
-            log.error("Couldn't convert List<SpiderResult> to JSON string!", e);
-            return "{}";
-        }
+        return findings;
     }
 
     /**
@@ -273,7 +272,7 @@ public class ZapService implements StatusDetailIndicator {
      *
      * @return JSON string
      */
-    public String retrieveScannerResult(String scanId, String targetUrl) throws ClientApiException {
+    public List<Finding> retrieveScannerResult(String scanId, String targetUrl) throws ClientApiException {
         try {
             int progress = 0;
             while (progress < 100) {
@@ -315,13 +314,7 @@ public class ZapService implements StatusDetailIndicator {
         }).collect(Collectors.toList());
         log.info("Found #{} alerts for targetUrl: {}", result.size(), targetUrl);
 
-        try {
-            log.info("Serializing alerts as json string.");
-            return new ObjectMapper().writeValueAsString(findings);
-        } catch (JsonProcessingException e) {
-            log.error("Couldn't convert List<Alert> to JSON string!", e);
-            return "{}";
-        }
+        return findings;
     }
 
     private static String getSingleResult(ApiResponse response) {
@@ -338,44 +331,30 @@ public class ZapService implements StatusDetailIndicator {
      * This sends a Request to the ZapAPI
      *
      * @param requestId aka MessageId
-     * @return request portion of the HAR
+     * @return HAR of the requestId
      */
-    JSONObject getHarForRequest(String requestId) {
-        JSONParser parser = new JSONParser();
+    Har getHarForRequest(String requestId) {
+        HarReader harReader = new HarReader();
 
         try {
-            String msg = new String(api.core.messageHar(requestId));
-            JSONArray entries = (JSONArray) ((JSONObject) ((JSONObject) parser.parse(msg)).get("log")).get("entries");
-
-            if (entries.size() == 1) {
-                return (JSONObject) entries.get(0);
-            }
+            String harString = new String(api.core.messageHar(requestId));
+            return harReader.readFromString(harString);
         } catch (ClientApiException e) {
             log.warn("Could not fetch Request HAR Object from ZAP.", e.getMessage());
-        } catch (ParseException e) {
+        } catch (HarReaderException e) {
             log.warn("Could not parse Request HAR Object returned from ZAP.", e.getMessage());
         }
         return null;
     }
 
-    Map<String, Object> getHarRequestPortionForRequest(String requestId){
-        JSONObject har = getHarForRequest(requestId);
+    HarRequest getHarRequestPortionForRequest(String requestId){
+        Har har = getHarForRequest(requestId);
 
-        JSONObject request = (JSONObject) har.get("request");
-        Map<String, Object> requestObject = new HashMap<>();
-        requestObject.put("request", request);
-        requestObject.put("url", request.get("url"));
+        if(har.getLog().getEntries().size() == 0){
+            return null;
+        }
 
-        return requestObject;
-    }
-
-    /**
-     * Fetches HAR (HTTP Archive) Information for all entries of the ZAP Site Tree
-     */
-    private List<Map<String,Object>> getHarInformationForSpiderResults(Collection<SpiderResult> urls) {
-        return urls.stream()
-                .map(url -> getHarRequestPortionForRequest(url.getMessageId()))
-                .collect(Collectors.toList());
+        return har.getLog().getEntries().get(0).getRequest();
     }
 
     /**
@@ -402,5 +381,9 @@ public class ZapService implements StatusDetailIndicator {
 
     public String getVersion() throws ClientApiException {
         return getSingleResult(api.core.version());
+    }
+
+    public String getRawReport() throws ClientApiException {
+        return new String(api.core.xmlreport());
     }
 }
