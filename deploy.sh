@@ -9,5 +9,5 @@ then
     echo $(docker push securecodebox/zap)
 else
     echo "Pushing only branch Tag"
-    echo $(docker push securecodebox/zap:$TRAVIS_BRANCH)
+    echo $(docker push securecodebox/zap:$TAG)
 fi

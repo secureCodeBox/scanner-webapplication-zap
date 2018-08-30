@@ -170,9 +170,7 @@ public class EngineWorkerJob implements JobRunnable {
             log.info("Starting Scanner Task against target: '{}'", target.getLocation());
 
             String contextId = configureScannerContext(target.getAttributes().getBaseUrl(), target);
-
-            service.recallTarget(target);
-
+            
             String userId = configureAuthentication(target, contextId);
             String result = executeScanner(target, contextId, userId);
 
