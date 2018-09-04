@@ -69,9 +69,9 @@ public class EngineTaskApiClient {
 
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(REQUEST_TIMEOUT);
-        BufferingClientHttpRequestFactory bufferingRequestFactory= new BufferingClientHttpRequestFactory(requestFactory);
+        BufferingClientHttpRequestFactory bufferingRequestFactory = new BufferingClientHttpRequestFactory(requestFactory);
 
-        if(config.getCamundaUsername() != null && config.getCamundaPassword() != null){
+        if (config.getCamundaUsername() != null && config.getCamundaPassword() != null) {
             restTemplate = new BasicAuthRestTemplate(bufferingRequestFactory, config.getCamundaUsername(), config.getCamundaPassword());
         } else {
             restTemplate = new RestTemplate(bufferingRequestFactory);
@@ -83,16 +83,14 @@ public class EngineTaskApiClient {
     }
 
     /**
-     * Returns true if the configured SCB Engine API is available and at least one processModell is deployed.
-     * @return
+     * @return Returns true if the configured SCB Engine API is available and at least one processModell is deployed.
      */
     boolean isApiAvailable() {
         return (this.countProcesses() > 0);
     }
 
     /**
-     * Returns the number of currently deployed process models which are available at the SCB Engine.
-     * @return
+     * @return Returns the number of currently deployed process models which are available at the SCB Engine.
      */
     int countProcesses() {
 
@@ -104,9 +102,7 @@ public class EngineTaskApiClient {
 
         if (response.getStatusCode().is2xxSuccessful() && response.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_JSON) && !response.toString().isEmpty()) {
             return response.toString().split("id").length;
-        }
-        else
-        {
+        } else {
             return 0;
         }
     }
