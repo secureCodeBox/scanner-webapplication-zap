@@ -1,30 +1,26 @@
----
 sudo: true
 
 language: java
 
 services:
-  - docker
+    - docker
 
 cache:
-  directories:
-  - .autoconf
-  - $HOME/.m2
+    directories:
+        - .autoconf
+        - $HOME/.m2
 
 script:
-  - export REPO=securecodebox/zap
-  - export TAG=$(echo $TRAVIS_BRANCH | sed 's/\//-/g')
-  - echo -en "travis_fold:start:Docker_Build\r"
-  - docker build -t $REPO:$TAG --build-arg=COMMIT_ID=$TRAVIS_COMMIT --build-arg=BRANCH=$TRAVIS_BRANCH --build-arg=REPOSITORY_URL="https://github.com/secureCodeBox/scanner-webapplication-zap" .
-  - docker tag $REPO:$TAG $REPO:oss;
-  - docker tag $REPO:$TAG $REPO:latest;
-  - docker tag $REPO:$TAG $REPO:$TRAVIS_BUILD_NUMBER;
-  - echo -en "travis_fold:end:Docker_Build\r"
-  - docker images
+    - export REPO=securecodebox/zap
+    - export TAG=$(echo $TRAVIS_BRANCH | sed 's/\//-/g')
+    - echo -en "travis_fold:start:Docker_Build\r"
+    - docker build -t $REPO:$TAG --build-arg="BUILD_DATE=$(date --rfc-3339=seconds)" --build-arg=VERSION=$TRAVIS_TAG --build-arg=COMMIT_ID=$TRAVIS_COMMIT --build-arg=BRANCH=$TRAVIS_BRANCH --build-arg=REPOSITORY_URL="https://github.com/secureCodeBox/scanner-webapplication-zap" .
+    - echo -en "travis_fold:end:Docker_Build\r"
+    - docker images
 
 deploy:
-  - provider: script
-    skip_cleanup: true
-    script: bash deploy.sh
-    on:
-      all_branches: true
+    - provider: script
+      skip_cleanup: true
+      script: bash .travis/deployDockerHub.sh
+      on:
+          all_branches: true

@@ -5,6 +5,8 @@ COPY . .
 ARG COMMIT_ID=unkown
 ARG BRANCH=unkown
 ARG REPOSITORY_URL=unkown
+ARG BUILD_DATE
+ARG VERSION
 
 ENV SCB_COMMIT_ID ${COMMIT_ID}
 ENV SCB_BRANCH ${BRANCH}
@@ -30,6 +32,18 @@ RUN chmod +x /home/zap/init.sh && \
     chown -R zap /home/zap
 
 USER zap
+
+LABEL org.opencontainers.image.title="secureCodeBox scanner-webapplication-zap" \
+    org.opencontainers.image.description="OWASP Zap integration for secureCodeBox" \
+    org.opencontainers.image.authors="iteratec GmbH" \
+    org.opencontainers.image.vendor="iteratec GmbH" \
+    org.opencontainers.image.documentation="https://github.com/secureCodeBox/secureCodeBox" \
+    org.opencontainers.image.licenses="Apache-2.0" \
+    org.opencontainers.image.version=$VERSION \
+    org.opencontainers.image.url=$REPOSITORY_URL \
+    org.opencontainers.image.source=$REPOSITORY_URL \
+    org.opencontainers.image.revision=$COMMIT_ID \
+    org.opencontainers.image.created=$BUILD_DATE
 
 EXPOSE 8080 8090
 
