@@ -20,8 +20,6 @@
 
 package io.securecodebox.zap.service.engine;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.model.CompleteTask;
 import io.securecodebox.zap.service.engine.model.ScanFailure;
@@ -37,15 +35,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.PostConstruct;
-import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 
 /**
  * Consumes and integrates the Camunda process engine API for external tasks.
@@ -58,6 +51,11 @@ public class EngineTaskApiClient {
     private final ZapConfiguration config;
     private RestTemplate restTemplate;
 
+    /**
+     * Request Timeout duration in milli sec.
+     */
+    static final int REQUEST_TIMEOUT = 5 * 1000;
+
 
     @Autowired
     public EngineTaskApiClient(ZapConfiguration config) {
@@ -69,9 +67,15 @@ public class EngineTaskApiClient {
 
         log.info("initiating REST template for user {}", config.getCamundaUsername());
 
-        restTemplate = (config.getCamundaUsername() != null && config.getCamundaPassword() != null)
-                ? new BasicAuthRestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()), config.getCamundaUsername(), config.getCamundaPassword())
-                : new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(REQUEST_TIMEOUT);
+        BufferingClientHttpRequestFactory bufferingRequestFactory = new BufferingClientHttpRequestFactory(requestFactory);
+
+        if (config.getCamundaUsername() != null && config.getCamundaPassword() != null) {
+            restTemplate = new BasicAuthRestTemplate(bufferingRequestFactory, config.getCamundaUsername(), config.getCamundaPassword());
+        } else {
+            restTemplate = new RestTemplate(bufferingRequestFactory);
+        }
 
         restTemplate.setInterceptors(Collections.singletonList(new LoggingRequestInterceptor()));
 
@@ -79,16 +83,14 @@ public class EngineTaskApiClient {
     }
 
     /**
-     * Returns true if the configured SCB Engine API is available and at least one processModell is deployed.
-     * @return
+     * @return Returns true if the configured SCB Engine API is available and at least one processModell is deployed.
      */
     boolean isApiAvailable() {
         return (this.countProcesses() > 0);
     }
 
     /**
-     * Returns the number of currently deployed process models which are available at the SCB Engine.
-     * @return
+     * @return Returns the number of currently deployed process models which are available at the SCB Engine.
      */
     int countProcesses() {
 
@@ -100,9 +102,7 @@ public class EngineTaskApiClient {
 
         if (response.getStatusCode().is2xxSuccessful() && response.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_JSON) && !response.toString().isEmpty()) {
             return response.toString().split("id").length;
-        }
-        else
-        {
+        } else {
             return 0;
         }
     }
