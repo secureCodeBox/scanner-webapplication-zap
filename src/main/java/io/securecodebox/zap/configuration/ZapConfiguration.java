@@ -48,14 +48,6 @@ public class ZapConfiguration {
     private boolean filterScannerResults;
 
 
-    /**
-     * Note: If the "ENGINE_ADDRESS" environment variable is set, it will override the configuration.
-     */
-    public String getProcessEngineApiUrl() {
-        String env = System.getenv("ENGINE_ADDRESS");
-        return (env != null) ? env : processEngineApiUrl;
-    }
-
     public int getTaskLockDurationInMs() {
         return Integer.parseInt(taskLockDurationInMs);
     }
