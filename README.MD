@@ -33,7 +33,7 @@ To configure this service specify the following environment variables:
 | ENGINE_BASIC_AUTH_USER     | username              |                      |
 | ENGINE_BASIC_AUTH_PASSWORD | 123456                |                      |
 
-### How to start a ZAP Scan Process
+## How to start a ZAP Scan Process
 Please have a look at our [User Guide][scb-user-guide] documentation, which describes in general how to start a scan process, based on the UI or REST API. There is also a [ZAP specific example][scb-user-guide-zap-example].
 
 ## Build with docker
