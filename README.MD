@@ -32,7 +32,6 @@ To configure this service specify the following environment variables:
 | ENGINE_ADDRESS             | http://engine         |                      |
 | ENGINE_BASIC_AUTH_USER     | username              |                      |
 | ENGINE_BASIC_AUTH_PASSWORD | 123456                |                      |
-| SECURECODEBOX_REDUCE_SPIDER_RESULT_ON_REST_SCHEMAS | true/false | Enables a deduplication feature to filter identical URLs |
 
 ### Example for the deduplication feature
 If `SECURECODEBOX_REDUCE_SPIDER_RESULT_ON_REST_SCHEMAS` is `true` the following URLs will be filtered:
