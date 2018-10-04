@@ -71,7 +71,8 @@ public class EngineTaskApiClient {
         requestFactory.setConnectTimeout(REQUEST_TIMEOUT);
         BufferingClientHttpRequestFactory bufferingRequestFactory = new BufferingClientHttpRequestFactory(requestFactory);
 
-        if (config.getCamundaUsername() != null && config.getCamundaPassword() != null) {
+        if (config.getCamundaUsername() != null && !config.getCamundaUsername().isEmpty()
+                && config.getCamundaPassword() != null && !config.getCamundaPassword().isEmpty()) {
             restTemplate = new BasicAuthRestTemplate(bufferingRequestFactory, config.getCamundaUsername(), config.getCamundaPassword());
         } else {
             restTemplate = new RestTemplate(bufferingRequestFactory);
