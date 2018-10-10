@@ -51,8 +51,6 @@ public class ZapTargetAttributes {
     private List<String> scannerExcludeRegex;
     @JsonProperty("ZAP_SCANNER_DELAY_IN_MS")
     private Integer scannerDelayInMs;
-    @JsonProperty("ZAP_HOST_PER_SCAN")
-    private Integer hostPerScan;
     @JsonProperty("ZAP_THREADS_PER_HOST")
     private Integer threadsPerHost;
 

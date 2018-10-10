@@ -215,16 +215,16 @@ public class ZapService implements StatusDetailIndicator {
      * @param userId User ID to start the scan as, "-1" to ignore
      * @return New scanner scan ID
      */
-    public Object startScannerAsUser(String targetUrl, String contextId, String userId, Integer delayInMs, Integer hostPerScan, Integer threadsPerHost) throws ClientApiException {
+    public Object startScannerAsUser(String targetUrl, String contextId, String userId, Integer delayInMs, Integer threadsPerHost) throws ClientApiException {
         log.info("Starting scanner for targetUrl '{}' and userId {}.", targetUrl, userId);
+
+        Integer defaultDelay = Integer.valueOf(api.ascan.optionDelayInMs().toString());
+        Integer defaultThreads = Integer.valueOf(api.ascan.optionThreadPerHost().toString());
 
         api.ascan.enableAllScanners(null);
         api.ascan.setOptionHandleAntiCSRFTokens(true);
         if (delayInMs != null) {
             api.ascan.setOptionDelayInMs(delayInMs);
-        }
-        if (hostPerScan != null) {
-            api.ascan.setOptionHostPerScan(hostPerScan);
         }
         if (threadsPerHost != null) {
             api.ascan.setOptionThreadPerHost(threadsPerHost);
@@ -233,6 +233,10 @@ public class ZapService implements StatusDetailIndicator {
         ApiResponse response = ("-1".equals(userId))
                 ? api.ascan.scan(targetUrl, "true", "false", null, null, null)
                 : api.ascan.scanAsUser(targetUrl, contextId, userId, "true", null, null, null);
+
+        api.ascan.setOptionThreadPerHost(defaultThreads);
+        api.ascan.setOptionDelayInMs(defaultDelay);
+
         return getSingleResult(response);
     }
 
