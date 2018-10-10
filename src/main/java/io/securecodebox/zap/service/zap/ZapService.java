@@ -215,13 +215,19 @@ public class ZapService implements StatusDetailIndicator {
      * @param userId User ID to start the scan as, "-1" to ignore
      * @return New scanner scan ID
      */
-    public Object startScannerAsUser(String targetUrl, String contextId, String userId, Integer delayInMs) throws ClientApiException {
+    public Object startScannerAsUser(String targetUrl, String contextId, String userId, Integer delayInMs, Integer hostPerScan, Integer threadsPerHost) throws ClientApiException {
         log.info("Starting scanner for targetUrl '{}' and userId {}.", targetUrl, userId);
 
         api.ascan.enableAllScanners(null);
         api.ascan.setOptionHandleAntiCSRFTokens(true);
         if (delayInMs != null) {
             api.ascan.setOptionDelayInMs(delayInMs);
+        }
+        if (hostPerScan != null) {
+            api.ascan.setOptionHostPerScan(hostPerScan);
+        }
+        if (threadsPerHost != null) {
+            api.ascan.setOptionThreadPerHost(threadsPerHost);
         }
 
         ApiResponse response = ("-1".equals(userId))

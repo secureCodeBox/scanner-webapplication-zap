@@ -229,7 +229,9 @@ public class EngineWorkerJob implements JobRunnable {
         log.info("Start Scanner with URL: " + target.getLocation());
         service.recallTarget(target);
         Integer delayInMs = target.getAttributes().getScannerDelayInMs();
-        String scanId = (String) service.startScannerAsUser(target.getLocation(), contextId, userId, delayInMs);
+        Integer hostPerScan = target.getAttributes().getHostPerScan();
+        Integer threadsPerHost = target.getAttributes().getThreadsPerHost();
+        String scanId = (String) service.startScannerAsUser(target.getLocation(), contextId, userId, delayInMs, hostPerScan, threadsPerHost);
         return service.retrieveScannerResult(scanId, target.getLocation());
     }
 
