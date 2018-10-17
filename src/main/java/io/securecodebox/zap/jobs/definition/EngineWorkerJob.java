@@ -228,7 +228,9 @@ public class EngineWorkerJob implements JobRunnable {
     private List<Finding> executeScanner(Target target, String contextId, String userId) throws ClientApiException {
         log.info("Start Scanner with URL: " + target.getLocation());
         service.recallTarget(target);
-        String scanId = (String) service.startScannerAsUser(target.getLocation(), contextId, userId);
+        Integer delayInMs = target.getAttributes().getScannerDelayInMs();
+        Integer threadsPerHost = target.getAttributes().getThreadsPerHost();
+        String scanId = (String) service.startScannerAsUser(target.getLocation(), contextId, userId, delayInMs, threadsPerHost);
         return service.retrieveScannerResult(scanId, target.getLocation());
     }
 

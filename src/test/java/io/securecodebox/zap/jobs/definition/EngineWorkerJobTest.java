@@ -126,10 +126,10 @@ public class EngineWorkerJobTest {
     public void testScannerConfiguredAndStarted() throws ClientApiException {
         createScannerTask();
         when(zapService.createContext(eq("http://aSeriousUrl.com"), any(), any())).thenReturn("1");
-        when(zapService.startScannerAsUser(eq("http://aSeriousUrl.com"), eq("1"), any())).thenReturn(null);
+        when(zapService.startScannerAsUser(eq("http://aSeriousUrl.com"), eq("1"), any(), any(), any())).thenReturn(null);
         engineWorkerJob.execute(eventPublisher);
         verify(zapService, times(1)).createContext(eq("http://aSeriousUrl.com"), any(), any());
-        verify(zapService, times(1)).startScannerAsUser(eq("http://aSeriousUrl.com"), eq("1"), any());
+        verify(zapService, times(1)).startScannerAsUser(eq("http://aSeriousUrl.com"), eq("1"), any(), any(), any());
     }
 
     @Test
