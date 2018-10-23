@@ -67,6 +67,8 @@ public class ZapService implements StatusDetailIndicator {
     private final ZapConfiguration config;
     private ClientApi api;
 
+    private static Integer defaultDelayInMs;
+    private static Integer defaultThreadsPerHost;
 
     @Autowired
     public ZapService(ZapConfiguration config) {
@@ -74,8 +76,13 @@ public class ZapService implements StatusDetailIndicator {
     }
 
     @PostConstruct
-    public void init() {
+    public void init() throws ClientApiException {
         api = new ClientApi(config.getZapHost(), config.getZapPort());
+        if( defaultDelayInMs == null && defaultThreadsPerHost == null) {
+            defaultDelayInMs = Integer.valueOf(api.ascan.optionDelayInMs().toString());
+            defaultThreadsPerHost = Integer.valueOf(api.ascan.optionThreadPerHost().toString());
+            log.debug("Set default rate limits to defaultDelayInMs:{}, defaultThreadsPerHost:{}", defaultDelayInMs, defaultThreadsPerHost);
+        }
     }
 
     /**
@@ -218,26 +225,34 @@ public class ZapService implements StatusDetailIndicator {
     public Object startScannerAsUser(String targetUrl, String contextId, String userId, Integer delayInMs, Integer threadsPerHost) throws ClientApiException {
         log.info("Starting scanner for targetUrl '{}' and userId {}.", targetUrl, userId);
 
-        Integer defaultDelay = Integer.valueOf(api.ascan.optionDelayInMs().toString());
-        Integer defaultThreads = Integer.valueOf(api.ascan.optionThreadPerHost().toString());
-
         api.ascan.enableAllScanners(null);
         api.ascan.setOptionHandleAntiCSRFTokens(true);
-        if (delayInMs != null) {
-            api.ascan.setOptionDelayInMs(delayInMs);
-        }
-        if (threadsPerHost != null) {
-            api.ascan.setOptionThreadPerHost(threadsPerHost);
-        }
+        setRateLimits(delayInMs, threadsPerHost);
 
         ApiResponse response = ("-1".equals(userId))
                 ? api.ascan.scan(targetUrl, "true", "false", null, null, null)
                 : api.ascan.scanAsUser(targetUrl, contextId, userId, "true", null, null, null);
 
-        api.ascan.setOptionThreadPerHost(defaultThreads);
-        api.ascan.setOptionDelayInMs(defaultDelay);
-
         return getSingleResult(response);
+    }
+
+     private void setRateLimits(Integer delayInMs, Integer threadsPerHost) throws ClientApiException {
+        log.debug("Set rate limits for scan");
+        if (delayInMs != null) {
+            log.debug("Set DelayInMs:{}", delayInMs);
+            api.ascan.setOptionDelayInMs(delayInMs);
+        } else {
+            log.debug("Set DelayInMs to default ({})", defaultDelayInMs);
+            api.ascan.setOptionDelayInMs(defaultDelayInMs);
+        }
+
+        if (threadsPerHost != null) {
+            log.debug("Set threadsPerHost:{}", threadsPerHost);
+            api.ascan.setOptionThreadPerHost(threadsPerHost);
+        } else {
+            log.debug("Set threadsPerHost to default ({})", defaultThreadsPerHost);
+            api.ascan.setOptionThreadPerHost(defaultThreadsPerHost);
+        }
     }
 
     /**
