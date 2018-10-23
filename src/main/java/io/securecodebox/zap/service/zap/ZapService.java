@@ -33,6 +33,7 @@ import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.model.Finding;
 import io.securecodebox.zap.service.engine.model.Reference;
 import io.securecodebox.zap.service.engine.model.Target;
+import io.securecodebox.zap.service.engine.model.zap.ZapReplacerRule;
 import io.securecodebox.zap.service.engine.model.zap.ZapSitemapEntry;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -188,12 +189,51 @@ public class ZapService implements StatusDetailIndicator {
         }
     }
 
+
+    /**
+     * Gets and converts the API wrapper request "replacer.rules()"
+     * @return array of replacer rules
+     * @throws ClientApiException can be thrown for any api request
+     */
+    private final ZapReplacerRule[] getCurrentReplacerRules () throws ClientApiException {
+        return ((ApiResponseList) api.replacer.rules()).getItems().stream()
+                .map(i -> ((ApiResponseSet) i))
+                .map(i -> {
+                    ZapReplacerRule rule = new ZapReplacerRule();
+                    rule.setMatchType(i.getStringValue("matchType"));
+                    rule.setDescription(i.getStringValue("description"));
+                    rule.setMatchString(i.getStringValue("matchString"));
+                    rule.setInitiators(i.getStringValue("initiators"));
+                    rule.setMatchRegex(i.getStringValue("matchRegex"));
+                    rule.setReplacement(i.getStringValue("replacement"));
+                    rule.setEnabled(i.getStringValue("enabled"));
+                    return rule;
+                })
+                .toArray(ZapReplacerRule[]::new);
+    }
+
     /**
      * @param userId User ID to start the spider scan as, "-1" to ignore
      * @return New spider scan ID
      */
-    public Object startSpiderAsUser(String targetUrl, String apiSpecUrl, int maxDepth, String contextId, String userId) throws ClientApiException {
+    public Object startSpiderAsUser(String targetUrl, String apiSpecUrl, int maxDepth, String contextId, String userId, ZapReplacerRule[] replacerRules) throws ClientApiException {
         log.info("Starting spider for targetUrl '{}' and with apiSpecUrl '{}' and maxDepth '{}'", targetUrl, apiSpecUrl, maxDepth);
+
+        // store current rules (later resets to these default rules)
+        final ZapReplacerRule[] defaultReplacerRules = getCurrentReplacerRules();
+        // then add any specified replacer rules
+        if (replacerRules != null && replacerRules.length > 0) {
+            for (ZapReplacerRule rule : replacerRules) {
+                log.info("Found custom rule: " + rule.getDescription()
+                        + "\n  | enabled: " + rule.getEnabled()
+                        + "\n  | matchType: " + rule.getMatchType()
+                        + "\n  | matchRegex: " + rule.getMatchRegex()
+                        + "\n  | matchString: " + rule.getMatchString()
+                        + "\n  | replacement: " + rule.getReplacement()
+                        + "\n  | initiators: " + rule.getInitiators());
+                api.replacer.addRule(rule.getDescription(), rule.getEnabled(), rule.getMatchType(), rule.getMatchRegex(), rule.getMatchString(), rule.getReplacement(), rule.getInitiators());
+            }
+        }
 
         if (apiSpecUrl != null && !apiSpecUrl.isEmpty()) {
             api.openapi.importUrl(apiSpecUrl, null);
@@ -208,18 +248,28 @@ public class ZapService implements StatusDetailIndicator {
         ApiResponse response = ("-1".equals(userId))
                 ? api.spider.scan(targetUrl, "-1", null, CONTEXT_NAME, null)
                 : api.spider.scanAsUser(contextId, userId, targetUrl, "-1", null, null);
+
+        removeCustomReplacerRules(defaultReplacerRules, replacerRules);
+
         return getSingleResult(response);
     }
 
+
     /**
      * @param userId User ID to start the scan as, "-1" to ignore
+     * @param delayInMs delay between reuests (optional)
+     * @param threadsPerHost maximum number of concurrent connections to host (optional)
+     * @param replacerRules replacer plugin rules, see
+     *                         https://github.com/zaproxy/zap-extensions/wiki/HelpAddonsReplacerReplacer
      * @return New scanner scan ID
      */
-    public Object startScannerAsUser(String targetUrl, String contextId, String userId, Integer delayInMs, Integer threadsPerHost) throws ClientApiException {
+    public Object startScannerAsUser(String targetUrl, String contextId, String userId, Integer delayInMs, Integer threadsPerHost, ZapReplacerRule[] replacerRules) throws ClientApiException {
         log.info("Starting scanner for targetUrl '{}' and userId {}.", targetUrl, userId);
 
         Integer defaultDelay = Integer.valueOf(api.ascan.optionDelayInMs().toString());
         Integer defaultThreads = Integer.valueOf(api.ascan.optionThreadPerHost().toString());
+
+        ZapReplacerRule[] defaultReplacerRules = getCurrentReplacerRules();
 
         api.ascan.enableAllScanners(null);
         api.ascan.setOptionHandleAntiCSRFTokens(true);
@@ -229,6 +279,25 @@ public class ZapService implements StatusDetailIndicator {
         if (threadsPerHost != null) {
             api.ascan.setOptionThreadPerHost(threadsPerHost);
         }
+        if (replacerRules != null && replacerRules.length > 0) {
+            for (ZapReplacerRule rule : replacerRules) {
+                log.info("Found custom rule: " + rule.getDescription()
+                        + "\n  | enabled: " + rule.getEnabled()
+                        + "\n  | matchType: " + rule.getMatchType()
+                        + "\n  | matchRegex: " + rule.getMatchRegex()
+                        + "\n  | matchString: " + rule.getMatchString()
+                        + "\n  | replacement: " + rule.getReplacement()
+                        + "\n  | initiators: " + rule.getInitiators());
+                api.replacer.addRule(
+                        rule.getDescription(),
+                        rule.getEnabled(),
+                        rule.getMatchType(),
+                        rule.getMatchRegex(),
+                        rule.getMatchString(),
+                        rule.getReplacement(),
+                        rule.getInitiators());
+            }
+        }
 
         ApiResponse response = ("-1".equals(userId))
                 ? api.ascan.scan(targetUrl, "true", "false", null, null, null)
@@ -237,7 +306,32 @@ public class ZapService implements StatusDetailIndicator {
         api.ascan.setOptionThreadPerHost(defaultThreads);
         api.ascan.setOptionDelayInMs(defaultDelay);
 
+        removeCustomReplacerRules(defaultReplacerRules, replacerRules);
+
         return getSingleResult(response);
+    }
+
+    private final void removeCustomReplacerRules (final ZapReplacerRule[] defaultRules, final ZapReplacerRule[] customRules) throws ClientApiException {
+        if (customRules != null && customRules.length > 0) {
+            for (ZapReplacerRule rule : customRules) {
+                // remove custom rule
+                api.replacer.removeRule(rule.getDescription());
+                // reset to default: if a default rule exists with the same description, add the default rule
+                for (ZapReplacerRule defaultReplacerRule : defaultRules) {
+                    if (rule.getDescription().equals(defaultReplacerRule.getDescription())) {
+                        api.replacer.addRule(
+                                defaultReplacerRule.getDescription(),
+                                defaultReplacerRule.getEnabled(),
+                                defaultReplacerRule.getMatchType(),
+                                defaultReplacerRule.getMatchRegex(),
+                                defaultReplacerRule.getMatchString(),
+                                defaultReplacerRule.getReplacement(),
+                                defaultReplacerRule.getInitiators());
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     /**
