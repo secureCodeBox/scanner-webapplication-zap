@@ -88,23 +88,6 @@ public class ZapService implements StatusDetailIndicator {
     }
 
     /**
-     * Removes all currently defined replacer rules.
-     * @throws ClientApiException
-     */
-    private void resetReplacerRules() throws ClientApiException {
-        ZapReplacerRule[] currentRules = getCurrentReplacerRules();
-        log.debug("Resetting ZAP replacer rules, currently there are #{} of them configured.", getCurrentReplacerRules().length);
-
-        if(currentRules != null && currentRules.length > 0) {
-            removeReplacerRule(currentRules);
-        }
-        else
-        {
-            log.debug("Ignore resetting the replacer rules, because there is no rule.");
-        }
-    }
-
-    /**
      * Create a new session and context based on the given URL.
      *
      * @param targetUrl Target URL to create a new session and context for
@@ -224,7 +207,7 @@ public class ZapService implements StatusDetailIndicator {
         resetReplacerRules();
         if (replacerRules != null && replacerRules.length > 0) {
             log.info("Adding {} custom ZAP replacer rules", replacerRules.length);
-            addReplacerRule(replacerRules);
+            addReplacerRules(replacerRules);
         }
         else {
             log.info("No custom ZAP replacer rule defined yet.");
@@ -267,7 +250,7 @@ public class ZapService implements StatusDetailIndicator {
         resetReplacerRules();
         if (replacerRules != null && replacerRules.length > 0) {
             log.debug("Adding {} custom ZAP replacer rules", replacerRules.length);
-            addReplacerRule(replacerRules);
+            addReplacerRules(replacerRules);
         }
         else {
             log.info("No custom ZAP replacer rule defined yet.");
@@ -329,9 +312,9 @@ public class ZapService implements StatusDetailIndicator {
      * @param rules
      * @throws ClientApiException thrown if at least one rule cannot be set
      */
-    private void addReplacerRule (ZapReplacerRule[] rules) throws ClientApiException {
+    private void addReplacerRules (ZapReplacerRule[] rules) throws ClientApiException {
         if(rules != null && rules.length > 0) {
-            log.debug("Removing #{} exiting replacer rules", rules.length);
+            log.debug("Adding #{} exiting replacer rules", rules.length);
             for (int i = 0; i < rules.length; i++)
                 if(rules[i] != null){
                     addReplacerRule(rules[i]);
@@ -363,12 +346,30 @@ public class ZapService implements StatusDetailIndicator {
                 rule.getInitiators());
     }
 
+
+    /**
+     * Removes all currently defined replacer rules.
+     * @throws ClientApiException
+     */
+    private void resetReplacerRules() throws ClientApiException {
+        ZapReplacerRule[] currentRules = getCurrentReplacerRules();
+        log.debug("Resetting ZAP replacer rules, currently there are #{} of them configured.", getCurrentReplacerRules().length);
+
+        if(currentRules != null && currentRules.length > 0) {
+            removeReplacerRules(currentRules);
+        }
+        else
+        {
+            log.debug("Ignore resetting the replacer rules, because there is no rule.");
+        }
+    }
+
     /**
      * Removes the given list of ZAP replacer rules.
      * @param rules The list of ZAP replacer rules to remove.
      * @throws ClientApiException thrown if at least one of the rules cannot be removed
      */
-    private void removeReplacerRule (@NotNull ZapReplacerRule[] rules) throws ClientApiException {
+    private void removeReplacerRules (@NotNull ZapReplacerRule[] rules) throws ClientApiException {
         if(rules != null && rules.length > 0) {
             log.debug("Removing #{} exiting replacer rules", rules.length);
             for (int i = 0; i < rules.length; i++) removeReplacerRule(rules[i]);
