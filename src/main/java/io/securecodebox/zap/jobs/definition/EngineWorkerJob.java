@@ -30,6 +30,7 @@ import io.securecodebox.zap.service.engine.ZapTaskService;
 import io.securecodebox.zap.service.engine.model.CompleteTask;
 import io.securecodebox.zap.service.engine.model.Finding;
 import io.securecodebox.zap.service.engine.model.Target;
+import io.securecodebox.zap.service.engine.model.zap.ZapReplacerRule;
 import io.securecodebox.zap.service.engine.model.zap.ZapTargetAttributes;
 import io.securecodebox.zap.service.engine.model.zap.ZapTask;
 import io.securecodebox.zap.service.engine.model.zap.ZapTopic;
@@ -219,9 +220,10 @@ public class EngineWorkerJob implements JobRunnable {
         );
         Integer spiderMaxDepth = target.getAttributes().getSpiderMaxDepth();
         spiderMaxDepth = (spiderMaxDepth != null) ? spiderMaxDepth : 1;
+        ZapReplacerRule[] zapReplacerRules = target.getAttributes().getZapReplacerRules();
         log.info("Start Spider with URL: " + target.getLocation());
         String scanId = (String) service.startSpiderAsUser(target.getLocation(), spiderApiSpecUrl,
-                spiderMaxDepth, contextId, userId);
+                spiderMaxDepth, contextId, userId, zapReplacerRules);
         return service.retrieveSpiderResult(scanId);
     }
 
@@ -230,7 +232,8 @@ public class EngineWorkerJob implements JobRunnable {
         service.recallTarget(target);
         Integer delayInMs = target.getAttributes().getScannerDelayInMs();
         Integer threadsPerHost = target.getAttributes().getThreadsPerHost();
-        String scanId = (String) service.startScannerAsUser(target.getLocation(), contextId, userId, delayInMs, threadsPerHost);
+        ZapReplacerRule[] zapReplacerRules = target.getAttributes().getZapReplacerRules();
+        String scanId = (String) service.startScannerAsUser(target.getLocation(), contextId, userId, delayInMs, threadsPerHost, zapReplacerRules);
         return service.retrieveScannerResult(scanId, target.getLocation());
     }
 

@@ -116,20 +116,20 @@ public class EngineWorkerJobTest {
     public void testSpiderConfiguredAndStarted() throws ClientApiException {
         createSpiderTask();
         when(zapService.createContext(eq("http://aSeriousUrl.com"), any(), any())).thenReturn("1");
-        when(zapService.startSpiderAsUser(eq("http://aSeriousUrl.com"), any(), anyInt(), eq("1"), any())).thenReturn(null);
+        when(zapService.startSpiderAsUser(eq("http://aSeriousUrl.com"), any(), anyInt(), eq("1"), any(), any())).thenReturn(null);
         engineWorkerJob.execute(eventPublisher);
         verify(zapService, times(1)).createContext(eq("http://aSeriousUrl.com"), any(), any());
-        verify(zapService, times(1)).startSpiderAsUser(eq("http://aSeriousUrl.com"), any(), anyInt(), eq("1"), any());
+        verify(zapService, times(1)).startSpiderAsUser(eq("http://aSeriousUrl.com"), any(), anyInt(), eq("1"), any(), any());
     }
 
     @Test
     public void testScannerConfiguredAndStarted() throws ClientApiException {
         createScannerTask();
         when(zapService.createContext(eq("http://aSeriousUrl.com"), any(), any())).thenReturn("1");
-        when(zapService.startScannerAsUser(eq("http://aSeriousUrl.com"), eq("1"), any(), any(), any())).thenReturn(null);
+        when(zapService.startScannerAsUser(eq("http://aSeriousUrl.com"), eq("1"), any(), any(), any(), any())).thenReturn(null);
         engineWorkerJob.execute(eventPublisher);
         verify(zapService, times(1)).createContext(eq("http://aSeriousUrl.com"), any(), any());
-        verify(zapService, times(1)).startScannerAsUser(eq("http://aSeriousUrl.com"), eq("1"), any(), any(), any());
+        verify(zapService, times(1)).startScannerAsUser(eq("http://aSeriousUrl.com"), eq("1"), any(), any(), any(), any());
     }
 
     @Test

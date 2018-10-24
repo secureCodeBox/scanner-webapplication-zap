@@ -78,6 +78,9 @@ public class ZapTargetAttributes {
     @JsonProperty("ZAP_SCANNER_CONFIGURATION_TYPE")
     private String scannerConfigurationType;
 
+    @JsonProperty("ZAP_REPLACER_RULES")
+    private ZapReplacerRule[] zapReplacerRules;
+
     /**
      * When set rest like structures will be used in reducing duplicates from Spider results.
      */
