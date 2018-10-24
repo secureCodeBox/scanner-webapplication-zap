@@ -66,8 +66,6 @@ public class ZapService implements StatusDetailIndicator {
     private static final String AUTH_FORM_BASED = "formBasedAuthentication";
     private static final String AUTH_SCRIPT_BASED = "scriptBasedAuthentication";
 
-    private static ZapReplacerRule[] defaultRules = null;
-
     private final ZapConfiguration config;
     private ClientApi api;
 
@@ -89,14 +87,20 @@ public class ZapService implements StatusDetailIndicator {
         }
     }
 
-    private void resetDefaultRules () throws ClientApiException {
-        if (defaultRules == null) {
-            defaultRules = getCurrentReplacerRules();
-            log.debug("Found {} ZAP replacer rules and stored them as the default rules.", defaultRules.length);
-        } else {
-            log.debug("Resetting ZAP replacer rules to default, currently there are #{} of them configured, the default contains #{}.", getCurrentReplacerRules().length, defaultRules.length);
-            removeReplacerRule(getCurrentReplacerRules());
-            addReplacerRule(defaultRules);
+    /**
+     * Removes all currently defined replacer rules.
+     * @throws ClientApiException
+     */
+    private void resetReplacerRules() throws ClientApiException {
+        ZapReplacerRule[] currentRules = getCurrentReplacerRules();
+        log.debug("Resetting ZAP replacer rules, currently there are #{} of them configured.", getCurrentReplacerRules().length);
+
+        if(currentRules != null && currentRules.length > 0) {
+            removeReplacerRule(currentRules);
+        }
+        else
+        {
+            log.debug("Ignore resetting the replacer rules, because there is no rule.");
         }
     }
 
@@ -217,13 +221,13 @@ public class ZapService implements StatusDetailIndicator {
     public Object startSpiderAsUser(String targetUrl, String apiSpecUrl, int maxDepth, String contextId, String userId, ZapReplacerRule[] replacerRules) throws ClientApiException {
         log.info("Starting spider for targetUrl '{}' and with apiSpecUrl '{}' and maxDepth '{}'", targetUrl, apiSpecUrl, maxDepth);
 
-        resetDefaultRules();
+        resetReplacerRules();
         if (replacerRules != null && replacerRules.length > 0) {
             log.info("Adding {} custom ZAP replacer rules", replacerRules.length);
             addReplacerRule(replacerRules);
         }
         else {
-            log.info("No replacer rule defined.");
+            log.info("No custom ZAP replacer rule defined yet.");
         }
 
         if (apiSpecUrl != null && !apiSpecUrl.isEmpty()) {
@@ -259,11 +263,14 @@ public class ZapService implements StatusDetailIndicator {
         api.ascan.enableAllScanners(null);
         api.ascan.setOptionHandleAntiCSRFTokens(true);
         setRateLimits(delayInMs, threadsPerHost);
-        resetDefaultRules();
 
+        resetReplacerRules();
         if (replacerRules != null && replacerRules.length > 0) {
             log.debug("Adding {} custom ZAP replacer rules", replacerRules.length);
             addReplacerRule(replacerRules);
+        }
+        else {
+            log.info("No custom ZAP replacer rule defined yet.");
         }
 
         ApiResponse response = ("-1".equals(userId))
