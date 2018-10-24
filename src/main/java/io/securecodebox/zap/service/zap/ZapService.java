@@ -65,6 +65,8 @@ public class ZapService implements StatusDetailIndicator {
     private static final String AUTH_FORM_BASED = "formBasedAuthentication";
     private static final String AUTH_SCRIPT_BASED = "scriptBasedAuthentication";
 
+    private static ZapReplacerRule[] defaultRules = null;
+
     private final ZapConfiguration config;
     private ClientApi api;
 
@@ -77,6 +79,35 @@ public class ZapService implements StatusDetailIndicator {
     @PostConstruct
     public void init() {
         api = new ClientApi(config.getZapHost(), config.getZapPort());
+    }
+
+    private void resetDefaultRules () throws ClientApiException {
+        if (defaultRules == null) {
+            defaultRules = getCurrentReplacerRules();
+        } else {
+            Arrays.stream(getCurrentReplacerRules()).forEach(rule -> {
+                try {
+                    api.replacer.removeRule(rule.getDescription());
+                } catch (ClientApiException e) {
+                    log.error("Unable to remove replacer rule", e);
+                }
+            });
+            Arrays.stream(defaultRules).forEach(rule -> {
+                try {
+                    api.replacer.addRule(
+                            rule.getDescription(),
+                            rule.getEnabled(),
+                            rule.getMatchType(),
+                            rule.getMatchRegex(),
+                            rule.getMatchString(),
+                            rule.getReplacement(),
+                            rule.getInitiators()
+                    );
+                } catch (ClientApiException e) {
+                    log.error("Unable to add default replacer rule", e);
+                }
+            });
+        }
     }
 
     /**
@@ -220,7 +251,7 @@ public class ZapService implements StatusDetailIndicator {
         log.info("Starting spider for targetUrl '{}' and with apiSpecUrl '{}' and maxDepth '{}'", targetUrl, apiSpecUrl, maxDepth);
 
         // store current rules (later resets to these default rules)
-        final ZapReplacerRule[] defaultReplacerRules = getCurrentReplacerRules();
+        resetDefaultRules();
         // then add any specified replacer rules
         if (replacerRules != null && replacerRules.length > 0) {
             for (ZapReplacerRule rule : replacerRules) {
@@ -249,7 +280,7 @@ public class ZapService implements StatusDetailIndicator {
                 ? api.spider.scan(targetUrl, "-1", null, CONTEXT_NAME, null)
                 : api.spider.scanAsUser(contextId, userId, targetUrl, "-1", null, null);
 
-        removeCustomReplacerRules(defaultReplacerRules, replacerRules);
+        // removeCustomReplacerRules(defaultReplacerRules, replacerRules);
 
         return getSingleResult(response);
     }
@@ -269,7 +300,7 @@ public class ZapService implements StatusDetailIndicator {
         Integer defaultDelay = Integer.valueOf(api.ascan.optionDelayInMs().toString());
         Integer defaultThreads = Integer.valueOf(api.ascan.optionThreadPerHost().toString());
 
-        ZapReplacerRule[] defaultReplacerRules = getCurrentReplacerRules();
+        resetDefaultRules();
 
         api.ascan.enableAllScanners(null);
         api.ascan.setOptionHandleAntiCSRFTokens(true);
@@ -281,13 +312,6 @@ public class ZapService implements StatusDetailIndicator {
         }
         if (replacerRules != null && replacerRules.length > 0) {
             for (ZapReplacerRule rule : replacerRules) {
-                log.info("Found custom rule: " + rule.getDescription()
-                        + "\n  | enabled: " + rule.getEnabled()
-                        + "\n  | matchType: " + rule.getMatchType()
-                        + "\n  | matchRegex: " + rule.getMatchRegex()
-                        + "\n  | matchString: " + rule.getMatchString()
-                        + "\n  | replacement: " + rule.getReplacement()
-                        + "\n  | initiators: " + rule.getInitiators());
                 api.replacer.addRule(
                         rule.getDescription(),
                         rule.getEnabled(),
@@ -306,7 +330,7 @@ public class ZapService implements StatusDetailIndicator {
         api.ascan.setOptionThreadPerHost(defaultThreads);
         api.ascan.setOptionDelayInMs(defaultDelay);
 
-        removeCustomReplacerRules(defaultReplacerRules, replacerRules);
+        // removeCustomReplacerRules(defaultReplacerRules, replacerRules);
 
         return getSingleResult(response);
     }
