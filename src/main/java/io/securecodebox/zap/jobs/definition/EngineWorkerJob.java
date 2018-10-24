@@ -221,25 +221,28 @@ public class EngineWorkerJob implements JobRunnable {
         Integer spiderMaxDepth = target.getAttributes().getSpiderMaxDepth();
         spiderMaxDepth = (spiderMaxDepth != null) ? spiderMaxDepth : 1;
         ZapReplacerRule[] zapReplacerRules = target.getAttributes().getZapReplacerRules();
-        log.info("Start Spider with URL: " + target.getLocation());
+
+        log.debug("Start Spider with URL: " + target.getLocation());
         String scanId = (String) service.startSpiderAsUser(target.getLocation(), spiderApiSpecUrl,
                 spiderMaxDepth, contextId, userId, zapReplacerRules);
         return service.retrieveSpiderResult(scanId);
     }
 
     private List<Finding> executeScanner(Target target, String contextId, String userId) throws ClientApiException {
-        log.info("Start Scanner with URL: " + target.getLocation());
+        log.debug("Start Sitemap recreation");
         service.recallTarget(target);
         Integer delayInMs = target.getAttributes().getScannerDelayInMs();
         Integer threadsPerHost = target.getAttributes().getThreadsPerHost();
         ZapReplacerRule[] zapReplacerRules = target.getAttributes().getZapReplacerRules();
+
+        log.debug("Start Scanner with URL: " + target.getLocation());
         String scanId = (String) service.startScannerAsUser(target.getLocation(), contextId, userId, delayInMs, threadsPerHost, zapReplacerRules);
         return service.retrieveScannerResult(scanId, target.getLocation());
     }
 
     private String configureScannerContext(String targetUrl, Target target) throws ClientApiException {
         ZapTargetAttributes attributes = target.getAttributes();
-        //Create a new Context for all the targets belonging to this context
+        // Create a new Context for all the targets belonging to this context
         return service.createContext(targetUrl, attributes.getScannerIncludeRegex(), attributes.getScannerExcludeRegex());
     }
 

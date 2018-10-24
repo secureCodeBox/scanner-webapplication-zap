@@ -43,6 +43,7 @@ import org.zaproxy.clientapi.core.*;
 import org.zaproxy.clientapi.gen.Context;
 
 import javax.annotation.PostConstruct;
+import javax.validation.constraints.NotNull;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.*;
@@ -93,7 +94,7 @@ public class ZapService implements StatusDetailIndicator {
             defaultRules = getCurrentReplacerRules();
             log.debug("Found {} ZAP replacer rules and stored them as the default rules.", defaultRules.length);
         } else {
-            log.debug("Resetting ZAP replacer rules to default");
+            log.debug("Resetting ZAP replacer rules to default, currently there are #{} of them configured, the default contains #{}.", getCurrentReplacerRules().length, defaultRules.length);
             removeReplacerRule(getCurrentReplacerRules());
             addReplacerRule(defaultRules);
         }
@@ -218,8 +219,11 @@ public class ZapService implements StatusDetailIndicator {
 
         resetDefaultRules();
         if (replacerRules != null && replacerRules.length > 0) {
-            log.debug("Adding {} custom ZAP replacer rules", replacerRules.length);
+            log.info("Adding {} custom ZAP replacer rules", replacerRules.length);
             addReplacerRule(replacerRules);
+        }
+        else {
+            log.info("No replacer rule defined.");
         }
 
         if (apiSpecUrl != null && !apiSpecUrl.isEmpty()) {
@@ -256,6 +260,7 @@ public class ZapService implements StatusDetailIndicator {
         api.ascan.setOptionHandleAntiCSRFTokens(true);
         setRateLimits(delayInMs, threadsPerHost);
         resetDefaultRules();
+
         if (replacerRules != null && replacerRules.length > 0) {
             log.debug("Adding {} custom ZAP replacer rules", replacerRules.length);
             addReplacerRule(replacerRules);
@@ -318,7 +323,21 @@ public class ZapService implements StatusDetailIndicator {
      * @throws ClientApiException thrown if at least one rule cannot be set
      */
     private void addReplacerRule (ZapReplacerRule[] rules) throws ClientApiException {
-        for (int i = 0; i < rules.length; i++) addReplacerRule(rules[i]);
+        if(rules != null && rules.length > 0) {
+            log.debug("Removing #{} exiting replacer rules", rules.length);
+            for (int i = 0; i < rules.length; i++)
+                if(rules[i] != null){
+                    addReplacerRule(rules[i]);
+                }
+                else
+                {
+                    log.warn("Couldn't add the replacer rule, the rule must not be null ot empty.");
+                }
+        }
+        else
+        {
+            log.warn("There is no replacer rule to add.");
+        }
     }
 
     /**
@@ -326,7 +345,7 @@ public class ZapService implements StatusDetailIndicator {
      * @param rule
      * @throws ClientApiException thrown if rule cannot be set
      */
-    private void addReplacerRule (ZapReplacerRule rule) throws ClientApiException {
+    private void addReplacerRule (@NotNull ZapReplacerRule rule) throws ClientApiException {
         api.replacer.addRule(
                 rule.getDescription(),
                 rule.getEnabled(),
@@ -338,21 +357,34 @@ public class ZapService implements StatusDetailIndicator {
     }
 
     /**
-     * Removes ZAP replacer rules
-     * @param rules
+     * Removes the given list of ZAP replacer rules.
+     * @param rules The list of ZAP replacer rules to remove.
      * @throws ClientApiException thrown if at least one of the rules cannot be removed
      */
-    private void removeReplacerRule (ZapReplacerRule[] rules) throws ClientApiException {
-        for (int i = 0; i < rules.length; i++) removeReplacerRule(rules[i]);
+    private void removeReplacerRule (@NotNull ZapReplacerRule[] rules) throws ClientApiException {
+        if(rules != null && rules.length > 0) {
+            log.debug("Removing #{} exiting replacer rules", rules.length);
+            for (int i = 0; i < rules.length; i++) removeReplacerRule(rules[i]);
+        }
+        else
+        {
+            log.warn("There is no replacer rule to remove.");
+        }
     }
 
     /**
-     * Removes ZAP replacer rule
-     * @param rule
+     * Removes a single ZAP replacer rule.
+     * @param rule The ZAP replacer rule to remove.
      * @throws ClientApiException thrown if rule cannot be removed
      */
-    private void removeReplacerRule (ZapReplacerRule rule) throws ClientApiException {
-        api.replacer.removeRule(rule.getDescription());
+    private void removeReplacerRule (@NotNull ZapReplacerRule rule) throws ClientApiException {
+        if(rule != null) {
+            api.replacer.removeRule(rule.getDescription());
+        }
+        else
+        {
+            log.warn("You can't remove a replacer rule which is null.");
+        }
     }
 
     /**
