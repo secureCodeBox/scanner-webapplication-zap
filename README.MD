@@ -1,4 +1,4 @@
-![Build Status](https://travis-ci.com/secureCodeBox/scanner-webapplication-zap.svg?token=2Rsf2E9Bq3FduSxRf6tz&branch=develop)
+[![Build Status](https://travis-ci.com/secureCodeBox/scanner-webapplication-zap.svg?branch=develop)](https://travis-ci.com/secureCodeBox/scanner-webapplication-zap)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Known Vulnerabilities](https://snyk.io/test/github/secureCodeBox/scanner-webapplication-zap/badge.svg)](https://snyk.io/test/github/secureCodeBox/scanner-webapplication-zap)
 [![GitHub release](https://img.shields.io/github/release/secureCodeBox/scanner-webapplication-zap.svg)](https://github.com/secureCodeBox/scanner-webapplication-zap/releases/latest)
