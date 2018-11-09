@@ -20,22 +20,43 @@
 
 package io.securecodebox.zap.jobs;
 
-import com.ning.http.client.AsyncHttpClient;
-import com.ning.http.client.AsyncHttpClientConfig.Builder;
+import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.DefaultAsyncHttpClient;
+import org.asynchttpclient.DefaultAsyncHttpClientConfig;
+import de.otto.edison.jobs.repository.JobRepository;
 import de.otto.edison.jobs.repository.cleanup.KeepLastJobs;
+import de.otto.edison.jobs.repository.cleanup.StopDeadJobs;
+import de.otto.edison.jobs.service.JobMutexGroup;
+import de.otto.edison.jobs.service.JobService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Autowired;
 
 
 @Configuration
 public class JobsConfiguration {
+
+    @Autowired
+    JobService jobService;
+
     @Bean
     public AsyncHttpClient httpClient() {
-        return new AsyncHttpClient(new Builder().build());
+        return new DefaultAsyncHttpClient(new DefaultAsyncHttpClientConfig.Builder().build());
     }
 
     @Bean
-    public KeepLastJobs keepLast10CleanupStrategy() {
-        return new KeepLastJobs(10);
+    public KeepLastJobs keepLast10CleanupStrategy(final JobRepository jobRepository) {
+        return new KeepLastJobs(jobRepository, 10);
     }
+
+    @Bean
+    public StopDeadJobs stopDeadJobsStrategy() {
+        return new StopDeadJobs(jobService, 60);
+    }
+
+    @Bean
+    public JobMutexGroup mutualExclusion() {
+        return new JobMutexGroup("barFizzle", "Bar", "Fizzle");
+    }
+
 }
