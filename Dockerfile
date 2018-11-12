@@ -23,7 +23,7 @@ COPY --from=builder /home/gradle/build/libs/scanner-webapplication-zap-0.4.0-SNA
 USER root
 
 RUN apk --update --no-cache add curl
-HEALTHCHECK --interval=5s --timeout=5s --start-period=60s --retries=3 CMD curl --fail http://localhost:8080/internal/health || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 CMD curl --fail http://localhost:8080/internal/health || exit 1
 
 RUN chmod g+w /etc/passwd
 
