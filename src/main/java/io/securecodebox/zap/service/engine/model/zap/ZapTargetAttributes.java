@@ -49,6 +49,10 @@ public class ZapTargetAttributes {
     private List<String> scannerIncludeRegex;
     @JsonProperty("ZAP_SCANNER_EXCLUDE_REGEX")
     private List<String> scannerExcludeRegex;
+    @JsonProperty("ZAP_SCANNER_DELAY_IN_MS")
+    private Integer scannerDelayInMs;
+    @JsonProperty("ZAP_THREADS_PER_HOST")
+    private Integer threadsPerHost;
 
     @JsonProperty("ZAP_AUTHENTICATION")
     private Boolean authentication;
@@ -73,6 +77,9 @@ public class ZapTargetAttributes {
     private String spiderConfigurationType;
     @JsonProperty("ZAP_SCANNER_CONFIGURATION_TYPE")
     private String scannerConfigurationType;
+
+    @JsonProperty("ZAP_REPLACER_RULES")
+    private ZapReplacerRule[] zapReplacerRules;
 
     /**
      * When set rest like structures will be used in reducing duplicates from Spider results.
