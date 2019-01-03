@@ -223,7 +223,7 @@ public class EngineWorkerJob implements JobRunnable {
         ZapReplacerRule[] zapReplacerRules = target.getAttributes().getZapReplacerRules();
 
         log.debug("Start Spider with URL: " + target.getLocation());
-        String scanId = (String) service.startSpiderAsUser(target.getLocation(), spiderApiSpecUrl,
+        String scanId = service.startSpiderAsUser(target.getLocation(), spiderApiSpecUrl,
                 spiderMaxDepth, contextId, userId, zapReplacerRules);
         return service.retrieveSpiderResult(scanId);
     }
@@ -236,7 +236,7 @@ public class EngineWorkerJob implements JobRunnable {
         ZapReplacerRule[] zapReplacerRules = target.getAttributes().getZapReplacerRules();
 
         log.debug("Start Scanner with URL: " + target.getLocation());
-        String scanId = (String) service.startScannerAsUser(target.getLocation(), contextId, userId, delayInMs, threadsPerHost, zapReplacerRules);
+        String scanId = service.startScannerAsUser(target.getLocation(), contextId, userId, delayInMs, threadsPerHost, zapReplacerRules);
         return service.retrieveScannerResult(scanId, target.getLocation());
     }
 
