@@ -63,7 +63,7 @@ public class EngineWorkerJob implements JobRunnable {
     @Autowired
     private ZapTaskService taskService;
     @Autowired
-    private ZapService service;
+    private ZapService zapService;
 
     @Override
     public JobDefinition getJobDefinition() {
@@ -138,7 +138,7 @@ public class EngineWorkerJob implements JobRunnable {
             ZapTargetAttributes attributes = target.getAttributes();
 
             //Create a new Context for each target
-            String contextId = service.createContext(attributes.getBaseUrl(),
+            String contextId = zapService.createContext(attributes.getBaseUrl(),
                     attributes.getSpiderIncludeRegex(), attributes.getSpiderExcludeRegex());
 
             String userId = configureAuthentication(target, contextId);
@@ -184,7 +184,7 @@ public class EngineWorkerJob implements JobRunnable {
         }
 
         // Save only one Raw Report, as zap doesn't support to get reports on the individual targets.
-        rawFindings.add(service.getRawReport());
+        rawFindings.add(zapService.getRawReport());
 
         if (config.isFilterScannerResults()) {
             log.info("Removing duplicate findings");
@@ -223,27 +223,28 @@ public class EngineWorkerJob implements JobRunnable {
         ZapReplacerRule[] zapReplacerRules = target.getAttributes().getZapReplacerRules();
 
         log.debug("Start Spider with URL: " + target.getLocation());
-        String scanId = service.startSpiderAsUser(target.getLocation(), spiderApiSpecUrl,
+        String scanId = zapService.startSpiderAsUser(target.getLocation(), spiderApiSpecUrl,
                 spiderMaxDepth, contextId, userId, zapReplacerRules);
-        return service.retrieveSpiderResult(scanId);
+        return zapService.retrieveSpiderResult(scanId);
     }
 
     private List<Finding> executeScanner(Target target, String contextId, String userId) throws ClientApiException {
-        log.debug("Start Sitemap recreation");
-        service.recallTarget(target);
         Integer delayInMs = target.getAttributes().getScannerDelayInMs();
         Integer threadsPerHost = target.getAttributes().getThreadsPerHost();
         ZapReplacerRule[] zapReplacerRules = target.getAttributes().getZapReplacerRules();
 
+        log.debug("Start Sitemap recreation");
+        zapService.recallTarget(target, zapReplacerRules);
+
         log.debug("Start Scanner with URL: " + target.getLocation());
-        String scanId = service.startScannerAsUser(target.getLocation(), contextId, userId, delayInMs, threadsPerHost, zapReplacerRules);
-        return service.retrieveScannerResult(scanId, target.getLocation());
+        String scanId = zapService.startScannerAsUser(target.getLocation(), contextId, userId, delayInMs, threadsPerHost, zapReplacerRules);
+        return zapService.retrieveScannerResult(scanId, target.getLocation());
     }
 
     private String configureScannerContext(String targetUrl, Target target) throws ClientApiException {
         ZapTargetAttributes attributes = target.getAttributes();
         // Create a new Context for all the targets belonging to this context
-        return service.createContext(targetUrl, attributes.getScannerIncludeRegex(), attributes.getScannerExcludeRegex());
+        return zapService.createContext(targetUrl, attributes.getScannerIncludeRegex(), attributes.getScannerExcludeRegex());
     }
 
     private String configureAuthentication(Target target, String contextId) throws ClientApiException, UnsupportedEncodingException {
@@ -260,7 +261,7 @@ public class EngineWorkerJob implements JobRunnable {
         String csrfToken = target.getAttributes().getCsrfTokenId();
 
         if (authentication) {
-            return service.configureAuthentication(
+            return zapService.configureAuthentication(
                     contextId, loginSite,
                     usernameFieldId, passwordFieldId,
                     loginUser, password,
@@ -278,7 +279,7 @@ public class EngineWorkerJob implements JobRunnable {
             CompleteTask completedTask = taskService.completeTask(task, findings, rawFindingsString, zapTopic);
             publisher.info("Completed " + ((zapTopic == ZapTopic.ZAP_SCANNER) ? "scanner" : "spider") + " task: " + completedTask.getJobId());
 
-            service.clearSession();
+            zapService.clearSession();
         } catch (JsonProcessingException e) {
             log.warn("Could not persist rawFindings");
         }

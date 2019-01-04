@@ -73,10 +73,13 @@ public class ZapService implements StatusDetailIndicator {
     private static final String AUTH_USER = "Testuser";
     private static final String AUTH_FORM_BASED = "formBasedAuthentication";
     private static final String AUTH_SCRIPT_BASED = "scriptBasedAuthentication";
+
     private static Integer defaultDelayInMs;
     private static Integer defaultThreadsPerHost;
+
     private final ZapConfiguration config;
     private ClientApi api;
+    private ReplacerPluginConfigurator replacerPluginConfigurator;
 
     @Autowired
     public ZapService(ZapConfiguration config) {
@@ -93,6 +96,8 @@ public class ZapService implements StatusDetailIndicator {
     @PostConstruct
     public void init() throws ClientApiException {
         api = new ClientApi(config.getZapHost(), config.getZapPort());
+        replacerPluginConfigurator = new ReplacerPluginConfigurator(api);
+
         if (defaultDelayInMs == null && defaultThreadsPerHost == null) {
             defaultDelayInMs = Integer.valueOf(api.ascan.optionDelayInMs().toString());
             defaultThreadsPerHost = Integer.valueOf(api.ascan.optionThreadPerHost().toString());
@@ -133,6 +138,10 @@ public class ZapService implements StatusDetailIndicator {
     }
 
     public void clearSession() throws ClientApiException {
+        api.spider.removeAllScans();
+        api.ascan.removeAllScans();
+        replacerPluginConfigurator.resetReplacerRules();
+
         api.core.newSession(SESSION_NAME, "true");
     }
 
@@ -185,17 +194,17 @@ public class ZapService implements StatusDetailIndicator {
      *
      * @param target the Target containing a sitemap with all requests to recall
      */
-    public void recallTarget(Target target) {
+    public void recallTarget(Target target, ZapReplacerRule[] zapReplacerRules) throws ClientApiException {
         List<ZapSitemapEntry> sitemap = target.getAttributes().getSitemap();
         if (sitemap == null) {
             log.warn("Tried to recall a empty sitemap to Zap. The scan will fail as it will not have any targets to scan!");
             return;
         }
 
-        ObjectMapper objMapper = new ObjectMapper();
+        replacerPluginConfigurator.configureZapWithReplacerRules(zapReplacerRules);
 
         log.info("Recalling {} requests to zap.", sitemap.size());
-
+        ObjectMapper objMapper = new ObjectMapper();
         for (ZapSitemapEntry entry : sitemap) {
             try {
                 String requestHar = objMapper.writeValueAsString(entry);
@@ -217,13 +226,7 @@ public class ZapService implements StatusDetailIndicator {
     public String startSpiderAsUser(String targetUrl, String apiSpecUrl, int maxDepth, String contextId, String userId, ZapReplacerRule[] replacerRules) throws ClientApiException {
         log.info("Starting spider for targetUrl '{}' and with apiSpecUrl '{}' and maxDepth '{}'", targetUrl, apiSpecUrl, maxDepth);
 
-        resetReplacerRules();
-        if (replacerRules != null && replacerRules.length > 0) {
-            log.info("Adding {} custom ZAP replacer rules", replacerRules.length);
-            addReplacerRules(replacerRules);
-        } else {
-            log.info("No custom ZAP replacer rule defined yet.");
-        }
+        replacerPluginConfigurator.configureZapWithReplacerRules(replacerRules);
 
         if (apiSpecUrl != null && !apiSpecUrl.isEmpty()) {
             api.openapi.importUrl(apiSpecUrl, null);
@@ -257,13 +260,7 @@ public class ZapService implements StatusDetailIndicator {
         api.ascan.setOptionHandleAntiCSRFTokens(true);
         setRateLimits(delayInMs, threadsPerHost);
 
-        resetReplacerRules();
-        if (replacerRules != null && replacerRules.length > 0) {
-            log.debug("Adding {} custom ZAP replacer rules", replacerRules.length);
-            addReplacerRules(replacerRules);
-        } else {
-            log.info("No custom ZAP replacer rule defined yet.");
-        }
+        replacerPluginConfigurator.configureZapWithReplacerRules(replacerRules);
 
         ApiResponse response = ("-1".equals(userId))
                 ? api.ascan.scan(targetUrl, "true", "false", null, null, null)
@@ -288,112 +285,6 @@ public class ZapService implements StatusDetailIndicator {
         } else {
             log.debug("Set threadsPerHost to default ({})", defaultThreadsPerHost);
             api.ascan.setOptionThreadPerHost(defaultThreadsPerHost);
-        }
-    }
-
-    /**
-     * Gets and converts the API wrapper request "replacer.rules()"
-     *
-     * @return array of replacer rules
-     * @throws ClientApiException can be thrown for any api request
-     */
-    private final ZapReplacerRule[] getCurrentReplacerRules() throws ClientApiException {
-        return ((ApiResponseList) api.replacer.rules()).getItems().stream()
-                .map(i -> ((ApiResponseSet) i))
-                .map(i -> {
-                    ZapReplacerRule rule = new ZapReplacerRule();
-                    rule.setMatchType(i.getStringValue("matchType"));
-                    rule.setDescription(i.getStringValue("description"));
-                    rule.setMatchString(i.getStringValue("matchString"));
-                    rule.setInitiators(i.getStringValue("initiators"));
-                    rule.setMatchRegex(i.getStringValue("matchRegex"));
-                    rule.setReplacement(i.getStringValue("replacement"));
-                    rule.setEnabled(i.getStringValue("enabled"));
-                    return rule;
-                })
-                .toArray(ZapReplacerRule[]::new);
-    }
-
-    /**
-     * Adds ZAP replacer rules
-     *
-     * @param rules
-     * @throws ClientApiException thrown if at least one rule cannot be set
-     */
-    private void addReplacerRules(ZapReplacerRule[] rules) throws ClientApiException {
-        if (rules != null && rules.length > 0) {
-            log.debug("Adding #{} exiting replacer rules", rules.length);
-            for (int i = 0; i < rules.length; i++) {
-                if (rules[i] != null) {
-                    addReplacerRule(rules[i]);
-                } else {
-                    log.warn("Couldn't add the replacer rule, the rule must not be null ot empty.");
-                }
-            }
-        } else {
-            log.warn("There is no replacer rule to add.");
-        }
-    }
-
-    /**
-     * Adds ZAP replacer rule
-     *
-     * @param rule
-     * @throws ClientApiException thrown if rule cannot be set
-     */
-    private void addReplacerRule(@NotNull ZapReplacerRule rule) throws ClientApiException {
-        api.replacer.addRule(
-                rule.getDescription(),
-                rule.getEnabled(),
-                rule.getMatchType(),
-                rule.getMatchRegex(),
-                rule.getMatchString(),
-                rule.getReplacement(),
-                rule.getInitiators());
-    }
-
-    /**
-     * Removes all currently defined replacer rules.
-     *
-     * @throws ClientApiException
-     */
-    private void resetReplacerRules() throws ClientApiException {
-        ZapReplacerRule[] currentRules = getCurrentReplacerRules();
-        log.debug("Resetting ZAP replacer rules, currently there are #{} of them configured.", getCurrentReplacerRules().length);
-
-        if (currentRules != null && currentRules.length > 0) {
-            removeReplacerRules(currentRules);
-        } else {
-            log.debug("Ignore resetting the replacer rules, because there is no rule.");
-        }
-    }
-
-    /**
-     * Removes the given list of ZAP replacer rules.
-     *
-     * @param rules The list of ZAP replacer rules to remove.
-     * @throws ClientApiException thrown if at least one of the rules cannot be removed
-     */
-    private void removeReplacerRules(@NotNull ZapReplacerRule[] rules) throws ClientApiException {
-        if (rules != null && rules.length > 0) {
-            log.debug("Removing #{} exiting replacer rules", rules.length);
-            for (int i = 0; i < rules.length; i++) removeReplacerRule(rules[i]);
-        } else {
-            log.warn("There is no replacer rule to remove.");
-        }
-    }
-
-    /**
-     * Removes a single ZAP replacer rule.
-     *
-     * @param rule The ZAP replacer rule to remove.
-     * @throws ClientApiException thrown if rule cannot be removed
-     */
-    private void removeReplacerRule(@NotNull ZapReplacerRule rule) throws ClientApiException {
-        if (rule != null) {
-            api.replacer.removeRule(rule.getDescription());
-        } else {
-            log.warn("You can't remove a replacer rule which is null.");
         }
     }
 
@@ -521,7 +412,7 @@ public class ZapService implements StatusDetailIndicator {
     }
 
     /**
-     * This status checks if the configured ZAP API is reachable and returning a API result.
+     * This status checks if the configured ZAP API is reachable and returning an API result.
      *
      * @return
      */
