@@ -14,7 +14,7 @@ ENV SCB_REPOSITORY_URL ${REPOSITORY_URL}
 
 RUN gradle clean build -Pvcs_commit=${SCB_COMMIT_ID} -Pvcs_version=${SCB_BRANCH} -Pvcs_url=${SCB_REPOSITORY_URL}
 
-FROM owasp/zap2docker-bare
+FROM owasp/zap2docker-weekly:w2019-02-05
 
 COPY dockerfiles/init.sh /home/zap/init.sh
 COPY dockerfiles/csrfAuthScript.js /home/zap/scripts/templates/authentication/csrfAuthScript.js
@@ -22,14 +22,10 @@ COPY --from=builder /home/gradle/build/libs/scanner-webapplication-zap-0.4.0-SNA
 
 USER root
 
-RUN apk --update --no-cache add curl
-HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 CMD curl --fail http://localhost:8080/internal/health || exit 1
-
-RUN chmod g+w /etc/passwd
-
-RUN apk add --update ca-certificates openssl
+RUN wget -O /home/zap/wait-for-it.sh https://raw.githubusercontent.com/vishnubob/wait-for-it/54d1f0bfeb6557adf8a3204455389d0901652242/wait-for-it.sh
 
 RUN chmod +x /home/zap/init.sh && \
+    chmod +x /home/zap/wait-for-it.sh && \
     chgrp -R 0 /home/zap/ && \
     chmod -R g=u /home/zap/ && \
     chown -R zap /home/zap
@@ -47,6 +43,8 @@ LABEL org.opencontainers.image.title="secureCodeBox scanner-webapplication-zap" 
     org.opencontainers.image.source=$REPOSITORY_URL \
     org.opencontainers.image.revision=$COMMIT_ID \
     org.opencontainers.image.created=$BUILD_DATE
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 CMD curl --fail http://localhost:8080/internal/health || exit 1
 
 EXPOSE 8080 8090
 
