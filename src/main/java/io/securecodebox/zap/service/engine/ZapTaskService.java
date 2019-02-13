@@ -88,11 +88,9 @@ public class ZapTaskService extends TaskService {
     @Override
     public StatusDetail statusDetail() {
         try {
-            boolean isApiAvailable = this.isApiAvailable();
-
-            if (isApiAvailable) {
+            if (this.isApiAvailable()) {
                 log.debug("Internal health check: OK");
-                return StatusDetail.statusDetail("Engine SCB API", Status.OK, "The Engine API is up and running", singletonMap("Deployed Processes", String.valueOf(this.taskApiClient.countProcesses())));
+                return StatusDetail.statusDetail("Engine SCB API", Status.OK, "The Engine API is up and running");
             } else {
                 return StatusDetail.statusDetail("Engine SCB API", Status.WARNING, "Couldn't reach the Engine API!");
             }

@@ -87,25 +87,13 @@ public class EngineTaskApiClient {
      * @return Returns true if the configured SCB Engine API is available and at least one processModell is deployed.
      */
     boolean isApiAvailable() {
-        return (this.countProcesses() > 0);
-    }
-
-    /**
-     * @return Returns the number of currently deployed process models which are available at the SCB Engine.
-     */
-    int countProcesses() {
-
-        String url = config.getProcessEngineApiUrl() + "/box/processes/";
-        log.debug("Call countProcesses() via {}", url);
+        String url = config.getProcessEngineApiUrl() + "/status";
+        log.debug("Call engine status via {}", url);
 
         ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-        log.debug(String.format("Result for countProcesses(): %s", response));
+        log.debug(String.format("Engine api status: %s", response));
 
-        if (response.getStatusCode().is2xxSuccessful() && response.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_JSON) && !response.toString().isEmpty()) {
-            return response.toString().split("id").length;
-        } else {
-            return 0;
-        }
+        return response.getStatusCode().is2xxSuccessful();
     }
 
     ZapTask fetchAndLockTask(ZapTopic zapTopic, String jobId) {
