@@ -1,5 +1,7 @@
 ---
-title: Zap
+title: "Zap"
+path: "scanner/Zap"
+category: "scanner"
 
 ---
 
