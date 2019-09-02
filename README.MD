@@ -5,15 +5,12 @@ category: "scanner"
 
 ---
 
-[![Build Status](https://travis-ci.com/secureCodeBox/scanner-webapplication-zap.svg?branch=develop)](https://travis-ci.com/secureCodeBox/scanner-webapplication-zap)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Known Vulnerabilities](https://snyk.io/test/github/secureCodeBox/scanner-webapplication-zap/badge.svg)](https://snyk.io/test/github/secureCodeBox/scanner-webapplication-zap)
-[![GitHub release](https://img.shields.io/github/release/secureCodeBox/scanner-webapplication-zap.svg)](https://github.com/secureCodeBox/scanner-webapplication-zap/releases/latest)
+The OWASP Zed Attack Proxy (ZAP) is one of the world’s most popular free security tools and is actively maintained by hundreds of international volunteers*. It can help you automatically find security vulnerabilities in your web applications while you are developing and testing your applications. Its also a great tool for experienced pentesters to use for manual security testing.
+
+<!-- end -->
 
 # About
 This repository contains a self contained µService utilizing the OWASP ZAP Proxy scanner for the secureCodeBox Application.
-
-<!-- end -->
 
 Further Documentation:
 * [Project Description][scb-project]
@@ -76,6 +73,12 @@ Please have a look at our [User Guide][scb-user-guide] documentation, which desc
 
 ## Build with docker
 To build the docker container run: `docker build -t CONTAINER_NAME:LABEL .`
+
+[![Build Status](https://travis-ci.com/secureCodeBox/scanner-webapplication-zap.svg?branch=develop)](https://travis-ci.com/secureCodeBox/scanner-webapplication-zap)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Known Vulnerabilities](https://snyk.io/test/github/secureCodeBox/scanner-webapplication-zap/badge.svg)](https://snyk.io/test/github/secureCodeBox/scanner-webapplication-zap)
+[![GitHub release](https://img.shields.io/github/release/secureCodeBox/scanner-webapplication-zap.svg)](https://github.com/secureCodeBox/scanner-webapplication-zap/releases/latest)
+
 
 [scb-project]:                  https://github.com/secureCodeBox/secureCodeBox
 [scb-developer-guide]:          https://github.com/secureCodeBox/secureCodeBox/blob/master/docs/developer-guide/README.md
