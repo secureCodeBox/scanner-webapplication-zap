@@ -3,6 +3,7 @@ title: "Zap"
 path: "scanner/Zap"
 category: "scanner"
 usecase: "Webapplication Vulnerability Scanner"
+release: "https://img.shields.io/github/release/secureCodeBox/scanner-webapplication-zap.svg"
 
 ---
 
