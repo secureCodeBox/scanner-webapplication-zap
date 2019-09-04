@@ -2,6 +2,7 @@
 title: "Zap"
 path: "scanner/Zap"
 category: "scanner"
+usecase: "Webapplication Vulnerability Scanner"
 
 ---
 
