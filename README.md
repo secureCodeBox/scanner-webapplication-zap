@@ -199,7 +199,7 @@ Example Output:
 <details>
 <summary>Zap output</summary>
 <br>
-```json
+<pre>
 {
     "findings": [
   {
@@ -1705,7 +1705,7 @@ Example Output:
 ]
 
   }
-```
+</pre>
 </details>
 
 
