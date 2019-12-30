@@ -1,5 +1,5 @@
 ---
-title: "Zap"
+title: "ZAP"
 path: "scanner/Zap"
 category: "scanner"
 usecase: "Webapplication Vulnerability Scanner"
