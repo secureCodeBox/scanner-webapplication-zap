@@ -14,11 +14,11 @@ The OWASP Zed Attack Proxy (ZAP) is one of the world’s most popular free secur
 <!-- end -->
 
 # About
-This repository contains a self contained µService utilizing the OWASP ZAP Proxy scanner for the secureCodeBox Application. To learn more about the Zap scanner itself visit [OWASP_Zap_Project] or [zaproxy.org].
+This repository contains a self contained µService utilizing the OWASP ZAP Proxy scanner for the secureCodeBox Application. To learn more about the ZAP scanner itself visit [OWASP_Zap_Project] or [zaproxy.org].
 
-## Zap parameters
+## ZAP parameters
 
-To hand over supported parameters through api usage, you can set following attributes:
+To hand over supported parameters through the secureCodeBox [API], you can set following attributes:
 
 ```json
 [
@@ -49,7 +49,7 @@ To hand over supported parameters through api usage, you can set following attri
         "ZAP_CSRF_TOKEN_ID": "[String token id]",
         "ZAP_REPLACER_RULES":  
          [
-             { 
+             {
                "matchType": "[String matchtype]",
                "description": "[String description]",
                "matchString": "[String matchcontent]",
@@ -66,60 +66,60 @@ To hand over supported parameters through api usage, you can set following attri
 ]
 ```
 
-Like every other scanner in the secureCodeBox, Zap works with the Target and Finding Format. In order to run a Zap Scan you can define multiple targets for the scanner (in most cases you'll only want to define one target). Each of those targets can be configured as follows: 
+Like every other scanner in the secureCodeBox, ZAP works with the Target and Finding Format. In order to run a ZAP securityTest (Scan) you can define multiple targets for the scanner (in most cases you'll only want to define one target). Each of those targets can be configured as follows:
 
 * `Target Name` defines the name of the target you want to scan
 * `Target Hosts` defines the host or IP-address of the target you want to scan (e.g. http://example.org, http://127.0.0.1:8080)
-* `Base Url` defines the webapplications base url. This is in most cases the authority of the webapplication (in other words the starting page of your webapplication). Zap uses the base url to create a context based on that value. There are advanced configurations which operate on the context like defining urls in and out of scope of the context. When entering a target for spidering, the base url should always be the same as the Target Hosts parameter. When entering a target for scanning, the base url can be different (This is often the case when targets which were beforehand created by a spider are given to the scanner). 
-* `Scan with authentication` checkbox defines, whether the webapplication to scan should be scanned with a user logged in. See [Authentication](#auth)
-* `Spider Configuration` defines if you want to configure the spider of Zap manually
+* `Base Url` defines the webapplications base url. This is in most cases the authority of the webapplication (in other words the starting page of your webapplication). ZAP uses the base url to create a context based on that value. There are advanced configurations which operate on the context like defining urls in and out of scope of the context. When entering a target for spidering, the base url should always be the same as the Target Hosts parameter. When entering a target for scanning, the base url can be different (This is often the case when targets which were beforehand created by a spider are given to the scanner).
+* `Scan with authentication` checkbox defines, whether the web-application to scan should be scanned with a user logged in. See [Authentication](#auth)
+* `Spider Configuration` defines if you want to configure the spider of ZAP manually
 * `Scanner Configuration` defines if you want to configure the scanner manually
 
-After configuring each target, you can specify a `business context` under which the scan should be executed. 
+After configuring each target, you can specify a `business context` under which the scan should be executed.
 
 ## Advanced Configuration
 
 ### <a name="auth"></a> Authentication
 
-This configuration lets you define a user configuration which will be used by Zap when scanning the webapplication. The scanner will automatically log in to the webapp with your provided credentials and execute the scan as the user. 
-For each target where the checkbox `Scan with authentication` was marked, the following parameters for user authentication need to be specified: 
+This configuration lets you define a user configuration which will be used by ZAP when scanning the web-application. The scanner will automatically log in to the webapp with your provided credentials and execute the scan as the user.
+For each target where the checkbox `Scan with authentication` was marked, the following parameters for user authentication need to be specified:
 
 * `Login Site URL` defines the URL of the login page
 * `Login User Name` defines the username that should be logged in
 * `Login User Name Field Id` defines the id of the HTML element where the username should be entered
 * `Login User Password` defines the password to be used
 * `Login Password Field Id` defines the id of the HTML element where the password should be entered
-* `Logged In Indicator` defines a regex which specifies an indicator when a user is logged in. This could be for example a present logout button, or a welcome <username> field. 
+* `Logged In Indicator` defines a regex which specifies an indicator when a user is logged in. This could be for example a present logout button, or a welcome <username> field.
 * `HTML IDs of CSRF Token elements` defines the ids of HTML elements which contain Anti CSRF Tokens
 
-A description of Authentication from Zap itself can be found [here](https://github.com/zaproxy/zap-core-help/wiki/HelpStartConceptsAuthentication). 
+A description of Authentication from ZAP itself can be found [here](https://github.com/zaproxy/zap-core-help/wiki/HelpStartConceptsAuthentication).
 
 ### Spider Configuration
 
-For each target where advanced spider configuration was specified the following values can be set: 
+For each target where advanced spider configuration was specified the following values can be set:
 
-* `OpenAPI Specification File` defines a File you can upload if your webapplication supports the OpenAPI Specification
+* `OpenAPI Specification File` defines a File you can upload if your web-application supports the OpenAPI Specification
 * `Maximum Sitemap Depth` defines the depth, the spider should crawl downwards and take found urls into consideration based on the target url
-* `Include RegExe's` defines a Regex Pattern which defines which URLs are in scope of your webapplication. Note that this is based on the specified base url
-* `Exclude RegExe's` defines what is out of the webapp scope based on the base url
+* `Include RegExe's` defines a Regex Pattern which defines which URLs are in scope of your web-application. Note that this is based on the specified base url
+* `Exclude RegExe's` defines what is out of the web-app scope based on the base url
 
-A description of the spider from Zap can be found [here](https://github.com/zaproxy/zap-core-help/wiki/HelpStartConceptsSpider). 
+A description of the spider from ZAP can be found [here](https://github.com/zaproxy/zap-core-help/wiki/HelpStartConceptsSpider).
 
 ### Scanner Configuration
 
-For each target where advanced scanner configuration was specified the following values can be set: 
+For each target where advanced scanner configuration was specified the following values can be set:
 
-* `Include RegExe's` defines a Regex Pattern which defines which URLs are in scope of your webapplication. Note that this is based on the specified base url
-* `Exclude RegExe's` defines what is out of the webapp scope based on the base url
+* `Include RegExe's` defines a Regex Pattern which defines which URLs are in scope of your web-application. Note that this is based on the specified base url
+* `Exclude RegExe's` defines what is out of the web-app scope based on the base url
 * `Scanner delay in ms` defines the delay between two http requests. This can be used to make the active scan less aggressive
 * `Threads per host` defines how many threads the scanner will use per host.
 
 
-## Automated Execution of Zap
+## Automated Execution of ZAP
 
-The secureCodeBox Target Format specifies a `name`, `location` and `attributes` field in a target. All of the above mentioned configurations except the target name and url need to be inserted into the attributes field if you want to run the scan automatically. 
+The secureCodeBox Target Format specifies a `name`, `location` and `attributes` field in a target. All of the above mentioned configurations except the target name and url need to be inserted into the attributes field if you want to run the scan automatically.
 The values need to be inserted with keys following the secureCodeBox variable conventions (UPPERCASE and snake_case).
-A full example target looks like this: 
+A full example target looks like this:
 
 ```javascript
 {
@@ -146,7 +146,7 @@ A full example target looks like this:
     ZAP_CSRF_TOKEN_ID: "csrftoken",
     ZAP_REPLACER_RULES:  
      [
-         { 
+         {
            matchType:"RESP_HEADER",
            description:"Remove CSP",
            matchString:"Content-Security Policy",
@@ -169,9 +169,9 @@ A full example target looks like this:
 }
 ```
 
-> **Note**: The attributes in the example are all fields currently supported by the secureCodeBox Zap Scanner. Mandatory is only `ZAP_BASE_URL`. If this field is not present, the target is ignored.
+> **Note**: The attributes in the example are all fields currently supported by the secureCodeBox ZAP Scanner. Mandatory is only `ZAP_BASE_URL`. If this field is not present, the target is ignored.
 
-## Zap Addon Replacer
+## ZAP Addon Replacer
 
 The [Replacer](https://github.com/zaproxy/zap-extensions/wiki/HelpAddonsReplacerReplacer) is used to replace strings in requests and responses and is enabled in the secureCodeBox. It might be useful to to add an authentication header for security testing of APIs (e.g. with an OpenAPI specification).
 
@@ -185,9 +185,9 @@ Example configuration:
     "context": "Example Test",
     "target": {
       "name": "BodgeIT on OpenShift",
-      "location": "bodgeit-scb.cloudapps.iterashift.com",
+      "location": "bodgeit.example.secureCodeBox.io",
       "attributes": {
-        "ZAP_BASE_URL": "bodgeit-scb.cloudapps.iterashift.com"
+        "ZAP_BASE_URL": "bodgeit.example.secureCodeBox.io"
         }
     }
   }
@@ -1744,6 +1744,4 @@ To build the docker container run: `docker build -t CONTAINER_NAME:LABEL .`
 
 [OWASP_ZAP_PROJECT]: https://www.owasp.org/index.php/OWASP_Zed_Attack_Proxy_Project
 [zaproxy.org]: https://www.zaproxy.org/
-
-
-
+[API]: https://github.com/secureCodeBox/secureCodeBox/tree/master/docs/user-guide#starting-securitytests-using-the-rest-api
