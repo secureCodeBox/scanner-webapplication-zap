@@ -57,8 +57,7 @@ To hand over supported parameters through the secureCodeBox [API], you can set f
                "matchRegex": "false",
                "replacement": "[String replacement]",
                "enabled": "[true | false]"
-             },
-             `...`
+             }
         ]
       }
     }
@@ -184,10 +183,10 @@ Example configuration:
     "name": "zap",
     "context": "Example Test",
     "target": {
-      "name": "BodgeIT on OpenShift",
-      "location": "bodgeit.example.secureCodeBox.io",
+      "name": "BodgeIT",
+      "location": "bodgeit.example.com",
       "attributes": {
-        "ZAP_BASE_URL": "bodgeit.example.secureCodeBox.io"
+        "ZAP_BASE_URL": "bodgeit.example.com"
         }
     }
   }
@@ -1726,11 +1725,11 @@ Example Output:
 
 To configure this service specify the following environment variables:
 
-| Environment Variable       | Value Example         | Description          |
-| -------------------------- | --------------------- |--------------------- |
-| ENGINE_ADDRESS             | http://engine         | Configures the Engine API Endpoint to connect with                     |
-| ENGINE_BASIC_AUTH_USER     | username              |                      |
-| ENGINE_BASIC_AUTH_PASSWORD | 123456                |                      |
+| Environment Variable         | Value Example         | Description                                                            |
+| ---------------------------- | --------------------- |----------------------------------------------------------------------- |
+| `ENGINE_ADDRESS`             | http://engine         | Configures the Engine API Endpoint to connect with                     |
+| `ENGINE_BASIC_AUTH_USER`     | username              |                                                                        |
+| `ENGINE_BASIC_AUTH_PASSWORD` | 123456                |                                                                        |
 
 
 ## Build with docker
