@@ -14,7 +14,7 @@ ENV SCB_REPOSITORY_URL ${REPOSITORY_URL}
 
 RUN gradle clean build -Pvcs_commit=${SCB_COMMIT_ID} -Pvcs_version=${SCB_BRANCH} -Pvcs_url=${SCB_REPOSITORY_URL}
 
-FROM owasp/zap2docker-weekly:w2019-02-05
+FROM owasp/zap2docker-stable:2.8.0
 
 COPY dockerfiles/init.sh /home/zap/init.sh
 COPY dockerfiles/csrfAuthScript.js /home/zap/scripts/templates/authentication/csrfAuthScript.js
