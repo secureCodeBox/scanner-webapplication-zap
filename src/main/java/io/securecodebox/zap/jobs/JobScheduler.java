@@ -62,9 +62,9 @@ public class JobScheduler {
     public void scheduleEngineWorkerJob() {
         String now = dateFormatter.format(LocalDateTime.now());
         if (ZapFeature.DISABLE_TRIGGER_ALL_JOBS.isActive()) {
-            log.info("The Job trigger time is inactive: {}", now);
+            log.debug("The Job trigger time is inactive: {}", now);
         } else {
-            log.info("The Job trigger time is active: {}", now);
+            log.debug("The Job trigger time is active: {}", now);
             jobService.startAsyncJob(EngineWorkerJob.JOB_TYPE);
         }
     }
