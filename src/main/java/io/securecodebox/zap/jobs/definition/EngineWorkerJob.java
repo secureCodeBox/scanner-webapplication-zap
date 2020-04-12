@@ -98,7 +98,7 @@ public class EngineWorkerJob implements JobRunnable {
                 taskService.reportFailure(spiderTask.getJobId(), "Could not define session management");
             }
         } else {
-            log.info("No spider tasks fetched.");
+            log.debug("No spider tasks fetched.");
             skippedSpider = true;
         }
 
@@ -114,7 +114,7 @@ public class EngineWorkerJob implements JobRunnable {
                 taskService.reportFailure(scannerTask.getJobId(), "Could not define session management");
             }
         } else {
-            log.info("No scanner tasks fetched.");
+            log.debug("No scanner tasks fetched.");
             skippedScanner = true;
         }
 

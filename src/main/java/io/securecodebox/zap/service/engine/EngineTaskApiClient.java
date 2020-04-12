@@ -98,7 +98,7 @@ public class EngineTaskApiClient {
 
     ZapTask fetchAndLockTask(ZapTopic zapTopic, String jobId) {
         String url = config.getProcessEngineApiUrl() + "/box/jobs/lock/" + zapTopic.getName() + "/" + jobId;
-        log.info(String.format("Trying to fetch task for the topic: %s via %s", zapTopic, url));
+        log.debug(String.format("Trying to fetch task for the topic: %s via %s", zapTopic, url));
 
         ResponseEntity<ZapTask> task = restTemplate.postForEntity(url, null, ZapTask.class);
         if (task.getBody() != null && task.getStatusCode().is2xxSuccessful() && task.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_JSON)) {
