@@ -23,7 +23,6 @@ package io.securecodebox.zap.jobs.definition;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.otto.edison.jobs.definition.JobDefinition;
-import de.otto.edison.jobs.eventbus.JobEventPublisher;
 import de.otto.edison.jobs.service.JobRunnable;
 import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.ZapTaskService;
@@ -74,23 +73,23 @@ public class EngineWorkerJob implements JobRunnable {
 
     /**
      * Main entry point
-     *
-     * @param publisher
      */
     @Override
-    public void execute(JobEventPublisher publisher) {
-
+    public boolean execute() {
         //fetch and lock tasks
         ZapTask spiderTask = taskService.getTask(ZapTopic.ZAP_SPIDER);
         ZapTask scannerTask = taskService.getTask(ZapTopic.ZAP_SCANNER);
 
+        boolean skippedSpider = false;
+        boolean skippedScanner = false;
+
         //if there is a spider task available
         if (spiderTask != null) {
-            publisher.info(String.format("Fetched spider task: %s", spiderTask.getJobId()));
+            log.info(String.format("Fetched spider task: %s", spiderTask.getJobId()));
 
             //execute the spider task
             try {
-                performSpiderTask(publisher, spiderTask);
+                performSpiderTask(spiderTask);
             } catch (ClientApiException | RuntimeException e) {
                 log.error("Job execution error!", e);
                 taskService.reportFailure(spiderTask.getJobId(), "Spider Job execution error");
@@ -99,13 +98,14 @@ public class EngineWorkerJob implements JobRunnable {
                 taskService.reportFailure(spiderTask.getJobId(), "Could not define session management");
             }
         } else {
-            publisher.info("No spider tasks fetched.");
+            log.info("No spider tasks fetched.");
+            skippedSpider = true;
         }
 
         if (scannerTask != null) {
-            publisher.info(String.format("Fetched scanner task: %s", scannerTask.getJobId()));
+            log.info(String.format("Fetched scanner task: %s", scannerTask.getJobId()));
             try {
-                performScannerTask(publisher, scannerTask);
+                performScannerTask(scannerTask);
             } catch (ClientApiException | RuntimeException e) {
                 log.error("Job execution error!", e);
                 taskService.reportFailure(scannerTask.getJobId(), "Scanner Job Execution error");
@@ -114,19 +114,21 @@ public class EngineWorkerJob implements JobRunnable {
                 taskService.reportFailure(scannerTask.getJobId(), "Could not define session management");
             }
         } else {
-            publisher.info("No scanner tasks fetched.");
+            log.info("No scanner tasks fetched.");
+            skippedScanner = true;
         }
+
+        return skippedSpider || skippedScanner;
     }
 
     /**
      * Perform spider tasks and post the result back to the engine
      *
-     * @param publisher
      * @param task      the task to be executed
      * @throws ClientApiException
      * @throws UnsupportedEncodingException
      */
-    private void performSpiderTask(JobEventPublisher publisher, ZapTask task) throws ClientApiException, UnsupportedEncodingException {
+    private void performSpiderTask(ZapTask task) throws ClientApiException, UnsupportedEncodingException {
 
         List<Finding> findings = new LinkedList<>();
         // RawFindings will remain empty in spider Task as it isn't usefull here.
@@ -154,18 +156,17 @@ public class EngineWorkerJob implements JobRunnable {
         }
 
         //Finish the spider task and post findings to the engine
-        completeTask(task, publisher, findings, rawFindings, ZapTopic.ZAP_SPIDER);
+        completeTask(task, findings, rawFindings, ZapTopic.ZAP_SPIDER);
     }
 
     /**
      * Perform scanner tasks and post the result back to the engine
      *
-     * @param publisher
      * @param task      the task to be executed
      * @throws ClientApiException
      * @throws UnsupportedEncodingException
      */
-    private void performScannerTask(JobEventPublisher publisher, ZapTask task) throws ClientApiException, UnsupportedEncodingException {
+    private void performScannerTask(ZapTask task) throws ClientApiException, UnsupportedEncodingException {
 
         List<Finding> findings = new LinkedList<>();
         List<String> rawFindings = new LinkedList<>();
@@ -192,7 +193,7 @@ public class EngineWorkerJob implements JobRunnable {
         }
 
         //Finish the scanner task and post findings to the engine
-        completeTask(task, publisher, findings, rawFindings, ZapTopic.ZAP_SCANNER);
+        completeTask(task, findings, rawFindings, ZapTopic.ZAP_SCANNER);
     }
 
     /**
@@ -272,12 +273,12 @@ public class EngineWorkerJob implements JobRunnable {
         }
     }
 
-    private void completeTask(ZapTask task, JobEventPublisher publisher, List<Finding> findings, List<String> rawFindings, ZapTopic zapTopic) throws ClientApiException {
+    private void completeTask(ZapTask task, List<Finding> findings, List<String> rawFindings, ZapTopic zapTopic) throws ClientApiException {
         try {
             String rawFindingsString = new ObjectMapper().writeValueAsString(rawFindings);
 
             CompleteTask completedTask = taskService.completeTask(task, findings, rawFindingsString, zapTopic);
-            publisher.info("Completed " + ((zapTopic == ZapTopic.ZAP_SCANNER) ? "scanner" : "spider") + " task: " + completedTask.getJobId());
+            log.info("Completed " + ((zapTopic == ZapTopic.ZAP_SCANNER) ? "scanner" : "spider") + " task: " + completedTask.getJobId());
 
             zapService.clearSession();
         } catch (JsonProcessingException e) {

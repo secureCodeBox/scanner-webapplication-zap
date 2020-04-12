@@ -57,6 +57,7 @@ import org.zaproxy.clientapi.core.ClientApiException;
 import org.zaproxy.clientapi.gen.Context;
 
 
+import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 
 
@@ -413,23 +414,21 @@ public class ZapService implements StatusDetailIndicator {
 
     /**
      * This status checks if the configured ZAP API is reachable and returning an API result.
-     *
-     * @return
      */
     @Override
-    public StatusDetail statusDetail() {
+    public List<StatusDetail> statusDetails() {
         try {
             String version = this.getVersion();
 
             if (version != null && !version.isEmpty()) {
                 log.debug("Internal status check: ok");
-                return StatusDetail.statusDetail("ZAP API", Status.OK, "The ZAP API is up and running", singletonMap("ZAP Version", version));
+                return singletonList(StatusDetail.statusDetail("ZAP API", Status.OK, "The ZAP API is up and running", singletonMap("ZAP Version", version)));
             } else {
-                return StatusDetail.statusDetail("ZAP API", Status.WARNING, "Warning, couldn't find any ZAP version information's. Propably an error occurred!");
+                return singletonList(StatusDetail.statusDetail("ZAP API", Status.WARNING, "Warning, couldn't find any ZAP version information's. Propably an error occurred!"));
             }
         } catch (ClientApiException e) {
             log.debug("Error: indicating a status problem!", e);
-            return StatusDetail.statusDetail(getClass().getSimpleName(), Status.ERROR, e.getMessage());
+            return singletonList(StatusDetail.statusDetail(getClass().getSimpleName(), Status.ERROR, e.getMessage()));
         }
     }
 

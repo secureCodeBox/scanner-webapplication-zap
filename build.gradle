@@ -1,9 +1,4 @@
 buildscript {
-    ext {
-        gradleLombokVersion = "1.11"  // Problem in IntelliJ with 1.12
-        sonarQubePluginVersion = '2.6.2'
-        springBootVersion = '1.5.11.RELEASE'
-    }
     repositories {
         mavenCentral()
         jcenter()
@@ -12,20 +7,15 @@ buildscript {
         }
     }
     dependencies {
-        classpath "io.franzbecker:gradle-lombok:${gradleLombokVersion}"
-        classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:${sonarQubePluginVersion}"
-        classpath "org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}"
         classpath "de.sstoehr:har-reader:2.1.2"
     }
 }
 
-apply plugin: 'eclipse'
-apply plugin: 'io.franzbecker.gradle-lombok'
-apply plugin: 'io.spring.dependency-management'
-apply plugin: 'java'
-apply plugin: 'maven-publish'
-apply plugin: 'org.sonarqube'
-apply plugin: 'org.springframework.boot'
+plugins {
+    id "java"
+    id "org.springframework.boot" version "2.2.6.RELEASE"
+    id "io.freefair.lombok" version "5.0.0-rc6"
+}
 
 repositories {
     mavenCentral()
@@ -38,14 +28,15 @@ dependencies {
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.5'
     compile group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1'
     compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
-    compile group: 'de.otto.edison', name: 'edison-jobs', version: '0.82.2'
-    compile group: 'de.otto.edison', name: 'edison-service', version: '0.82.2'
-    compile group: 'de.otto.edison', name: 'edison-togglz', version: '0.82.2'
-    compile group: 'org.springframework.boot', name: 'spring-boot-actuator-docs'
-    compile group: 'org.springframework.boot', name: 'spring-boot-devtools'
+    compile group: 'de.otto.edison', name: 'edison-jobs', version: '2.2.7'
+    compile group: 'de.otto.edison', name: 'edison-core', version: '2.2.7'
+    compile group: 'de.otto.edison', name: 'edison-togglz', version: '2.2.7'
     compile group: 'org.zaproxy', name: 'zap', version: '2.9.0'
     compile group: 'org.zaproxy', name: 'zap-clientapi', version: '1.8.0'
     compile group: 'de.sstoehr', name: 'har-reader', version: '2.1.2'
+    compile group: 'org.asynchttpclient', name: 'async-http-client', version: '2.12.1'
+
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-actuator', version: '2.2.6.RELEASE'
 
     testCompile group: 'org.mockito', name: 'mockito-all', version: '1.9.5'
 }
@@ -74,8 +65,4 @@ processResources {
             "application.build.url"      : build_url,
             "application.build.timestamp": build_timestamp
     ]
-}
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '2.3'
 }

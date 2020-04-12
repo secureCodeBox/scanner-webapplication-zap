@@ -36,6 +36,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.util.*;
 
+import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 
 
@@ -86,17 +87,17 @@ public class ZapTaskService extends TaskService {
 
 
     @Override
-    public StatusDetail statusDetail() {
+    public List<StatusDetail> statusDetails() {
         try {
             if (this.isApiAvailable()) {
                 log.debug("Internal health check: OK");
-                return StatusDetail.statusDetail("Engine SCB API", Status.OK, "The Engine API is up and running");
+                return singletonList(StatusDetail.statusDetail("Engine SCB API", Status.OK, "The Engine API is up and running"));
             } else {
-                return StatusDetail.statusDetail("Engine SCB API", Status.WARNING, "Couldn't reach the Engine API!");
+                return singletonList(StatusDetail.statusDetail("Engine SCB API", Status.WARNING, "Couldn't reach the Engine API!"));
             }
         } catch (RuntimeException e) {
             log.debug("Error: Indicating a health problem!", e);
-            return StatusDetail.statusDetail("Engine SCB API", Status.ERROR, "Couldn't reach the Engine API: "+ e.getMessage());
+            return singletonList(StatusDetail.statusDetail("Engine SCB API", Status.ERROR, "Couldn't reach the Engine API: " + e.getMessage()));
         }
     }
 }

@@ -1,4 +1,4 @@
-FROM gradle:4.9-alpine as builder
+FROM gradle:6.3.0-jdk8 as builder
 USER root
 COPY . .
 

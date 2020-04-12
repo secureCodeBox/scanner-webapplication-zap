@@ -52,8 +52,6 @@ import static org.mockito.Mockito.*;
 public class EngineWorkerJobTest {
 
     @Mock
-    private JobEventPublisher eventPublisher;
-    @Mock
     private ZapTaskService taskService;
     @Mock
     private ZapConfiguration config;
@@ -61,7 +59,7 @@ public class EngineWorkerJobTest {
     private ZapService zapService;
 
     @InjectMocks
-    private EngineWorkerJob engineWorkerJob = new EngineWorkerJob();
+    private EngineWorkerJob engineWorkerJob;
 
     private ZapTask spiderTask;
     private ZapTask scannerTask;
@@ -69,6 +67,7 @@ public class EngineWorkerJobTest {
     @Before
     public void setUp() throws ClientApiException {
         MockitoAnnotations.initMocks(this);
+
         when(
                 taskService.completeTask(any(), any(), any(), any()))
                 .thenReturn(new CompleteTask("1", "1", "zap", new LinkedList<>(), "[]")
@@ -81,7 +80,7 @@ public class EngineWorkerJobTest {
     public void testContextCreation() throws ClientApiException {
         createSpiderTask();
         createScannerTask();
-        engineWorkerJob.execute(eventPublisher);
+        engineWorkerJob.execute();
         verify(zapService, times(2)).createContext(eq("http://aSeriousUrl.com"), any(), any());
     }
 
@@ -92,7 +91,7 @@ public class EngineWorkerJobTest {
         Target t2 = new Target("http://landOfPudding.com");
         t2.getAttributes().setBaseUrl("http://landOfPudding.com");
         scannerTask.getTargets().add(t2);
-        engineWorkerJob.execute(eventPublisher);
+        engineWorkerJob.execute();
         verify(zapService, times(1)).createContext(eq("http://aSeriousUrl.com"), any(), any());
         verify(zapService, times(1)).createContext(eq("http://landOfPudding.com"), any(), any());
         verify(zapService, times(2)).createContext(any(), any(), any());
@@ -106,7 +105,7 @@ public class EngineWorkerJobTest {
         Target t2 = new Target("http://landOfPudding.com");
         t2.getAttributes().setBaseUrl("http://aSeriousUrl.com");
         scannerTask.getTargets().add(t2);
-        engineWorkerJob.execute(eventPublisher);
+        engineWorkerJob.execute();
         verify(zapService, times(2)).createContext(eq("http://aSeriousUrl.com"), any(), any());
         verify(zapService, times(2)).createContext(any(), any(), any());
 
@@ -117,7 +116,7 @@ public class EngineWorkerJobTest {
         createSpiderTask();
         when(zapService.createContext(eq("http://aSeriousUrl.com"), any(), any())).thenReturn("1");
         when(zapService.startSpiderAsUser(eq("http://aSeriousUrl.com"), any(), anyInt(), eq("1"), any(), any())).thenReturn(null);
-        engineWorkerJob.execute(eventPublisher);
+        engineWorkerJob.execute();
         verify(zapService, times(1)).createContext(eq("http://aSeriousUrl.com"), any(), any());
         verify(zapService, times(1)).startSpiderAsUser(eq("http://aSeriousUrl.com"), any(), anyInt(), eq("1"), any(), any());
     }
@@ -127,7 +126,7 @@ public class EngineWorkerJobTest {
         createScannerTask();
         when(zapService.createContext(eq("http://aSeriousUrl.com"), any(), any())).thenReturn("1");
         when(zapService.startScannerAsUser(eq("http://aSeriousUrl.com"), eq("1"), any(), any(), any(), any())).thenReturn(null);
-        engineWorkerJob.execute(eventPublisher);
+        engineWorkerJob.execute();
         verify(zapService, times(1)).createContext(eq("http://aSeriousUrl.com"), any(), any());
         verify(zapService, times(1)).startScannerAsUser(eq("http://aSeriousUrl.com"), eq("1"), any(), any(), any(), any());
     }
@@ -137,7 +136,7 @@ public class EngineWorkerJobTest {
         createSpiderTask();
         createScannerTask();
         spiderTask.getTargets().get(0).getAttributes().setAuthentication(true);
-        engineWorkerJob.execute(eventPublisher);
+        engineWorkerJob.execute();
         verify(zapService, times(1)).configureAuthentication(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
@@ -155,7 +154,7 @@ public class EngineWorkerJobTest {
             return null;
         }).when(taskService).completeTask(any(), any(), any(), any());
 
-        engineWorkerJob.execute(eventPublisher);
+        engineWorkerJob.execute();
     }
 
     @Test
@@ -170,7 +169,7 @@ public class EngineWorkerJobTest {
             return null;
         }).when(taskService).completeTask(any(), any(), any(), any());
 
-        engineWorkerJob.execute(eventPublisher);
+        engineWorkerJob.execute();
     }
 
     private boolean findingsAreEqual(List<Finding> findings1, List<Finding> findings2) {
