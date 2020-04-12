@@ -86,7 +86,7 @@ public class EngineWorkerJob implements JobRunnable {
 
         //if there is a spider task available
         if (spiderTask != null) {
-            publisher.debug(String.format("Fetched spider task: %s", spiderTask.getJobId()));
+            publisher.info(String.format("Fetched spider task: %s", spiderTask.getJobId()));
 
             //execute the spider task
             try {
@@ -99,11 +99,11 @@ public class EngineWorkerJob implements JobRunnable {
                 taskService.reportFailure(spiderTask.getJobId(), "Could not define session management");
             }
         } else {
-            publisher.debug("No spider tasks fetched.");
+            publisher.info("No spider tasks fetched.");
         }
 
         if (scannerTask != null) {
-            publisher.debug(String.format("Fetched scanner task: %s", scannerTask.getJobId()));
+            publisher.info(String.format("Fetched scanner task: %s", scannerTask.getJobId()));
             try {
                 performScannerTask(publisher, scannerTask);
             } catch (ClientApiException | RuntimeException e) {
@@ -114,7 +114,7 @@ public class EngineWorkerJob implements JobRunnable {
                 taskService.reportFailure(scannerTask.getJobId(), "Could not define session management");
             }
         } else {
-            publisher.debug("No scanner tasks fetched.");
+            publisher.info("No scanner tasks fetched.");
         }
     }
 
