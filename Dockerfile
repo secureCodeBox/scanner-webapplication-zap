@@ -12,7 +12,7 @@ ENV SCB_COMMIT_ID ${COMMIT_ID}
 ENV SCB_BRANCH ${BRANCH}
 ENV SCB_REPOSITORY_URL ${REPOSITORY_URL}
 
-RUN gradle clean build -Pvcs_commit=${SCB_COMMIT_ID} -Pvcs_version=${SCB_BRANCH} -Pvcs_url=${SCB_REPOSITORY_URL}
+RUN gradle clean build --no-daemon -Pvcs_commit=${SCB_COMMIT_ID} -Pvcs_version=${SCB_BRANCH} -Pvcs_url=${SCB_REPOSITORY_URL}
 
 FROM owasp/zap2docker-bare:2.9.0
 
