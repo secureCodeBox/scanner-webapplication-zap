@@ -42,6 +42,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
+import javax.validation.constraints.NotNull;
+
+import io.securecodebox.zap.service.engine.model.zap.ZapTargetAttributes;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -247,14 +250,15 @@ public class ZapService implements StatusDetailIndicator {
 
     /**
      * @param userId         User ID to start the scan as, "-1" to ignore
-     * @param delayInMs      delay between reuests (optional)
-     * @param threadsPerHost maximum number of concurrent connections to host (optional)
-     * @param replacerRules  replacer plugin rules, see
-     *                       https://github.com/zaproxy/zap-extensions/wiki/HelpAddonsReplacerReplacer
+     * @param attributes     ZapScan Attributes
      * @return New scanner scan ID
      */
-    public String startScannerAsUser(String targetUrl, String contextId, String userId, Integer delayInMs, Integer threadsPerHost, ZapReplacerRule[] replacerRules) throws ClientApiException {
+    public String startScannerAsUser(String targetUrl, String contextId, String userId, ZapTargetAttributes attributes) throws ClientApiException {
         log.info("Starting scanner for targetUrl '{}' and userId {}.", targetUrl, userId);
+
+        Integer delayInMs = attributes.getScannerDelayInMs();
+        Integer threadsPerHost = attributes.getThreadsPerHost();
+        ZapReplacerRule[] replacerRules = attributes.getZapReplacerRules();
 
         api.ascan.enableAllScanners(null);
         api.ascan.setOptionHandleAntiCSRFTokens(true);

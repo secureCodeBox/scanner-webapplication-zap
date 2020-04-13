@@ -56,6 +56,11 @@ public class ZapTargetAttributes {
 
     @JsonProperty("ZAP_AUTHENTICATION")
     private Boolean authentication;
+
+    @JsonProperty("ZAP_AUTHENTICATION_METHOD")
+    private ZapAuthenticationMethod authenticationMethod = ZapAuthenticationMethod.FormBased;
+
+    // Only used when ZapAuthenticationMethod is "form-based"
     @JsonProperty("ZAP_LOGIN_SITE")
     private String loginSite;
     @JsonProperty("ZAP_LOGIN_USER")
@@ -72,6 +77,24 @@ public class ZapTargetAttributes {
     private String loggedOutIndicator;
     @JsonProperty("ZAP_CSRF_TOKEN_ID")
     private String csrfTokenId;
+
+    // Only used when ZapAuthenticationMethod is "script-based"
+    /**
+     * Path to the Script
+     * Currently only js (Oracle Nashorn) Type Scripts are supported
+     *
+     * Example: "/home/securecodebox/login-search-service.js"
+     */
+    @JsonProperty("ZAP_AUTHENTICATION_SCRIPT_PATH")
+    private String authenticationScriptPath;
+    /**
+     * Parameters to use when activating the script.
+     * Formatted like a url query string
+     *
+     * Example: "url=http://foobar.com&something=else"
+     */
+    @JsonProperty("ZAP_AUTHENTICATION_SCRIPT_PARAMETERS")
+    private String authenticationScriptParameters;
 
     @JsonProperty("ZAP_SPIDER_CONFIGURATION_TYPE")
     private String spiderConfigurationType;

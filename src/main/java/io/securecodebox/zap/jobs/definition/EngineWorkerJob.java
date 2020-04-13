@@ -230,15 +230,11 @@ public class EngineWorkerJob implements JobRunnable {
     }
 
     private List<Finding> executeScanner(Target target, String contextId, String userId) throws ClientApiException {
-        Integer delayInMs = target.getAttributes().getScannerDelayInMs();
-        Integer threadsPerHost = target.getAttributes().getThreadsPerHost();
-        ZapReplacerRule[] zapReplacerRules = target.getAttributes().getZapReplacerRules();
-
         log.debug("Start Sitemap recreation");
-        zapService.recallTarget(target, zapReplacerRules);
+        zapService.recallTarget(target, target.getAttributes().getZapReplacerRules());
 
         log.debug("Start Scanner with URL: " + target.getLocation());
-        String scanId = zapService.startScannerAsUser(target.getLocation(), contextId, userId, delayInMs, threadsPerHost, zapReplacerRules);
+        String scanId = zapService.startScannerAsUser(target.getLocation(), contextId, userId, target.getAttributes());
         return zapService.retrieveScannerResult(scanId, target.getLocation());
     }
 
