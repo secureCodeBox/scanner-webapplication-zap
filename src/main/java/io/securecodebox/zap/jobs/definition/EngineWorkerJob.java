@@ -248,22 +248,10 @@ public class EngineWorkerJob implements JobRunnable {
 
         Boolean authentication = target.getAttributes().getAuthentication();
         authentication = (authentication != null) ? authentication : false;
-        String loginSite = target.getAttributes().getLoginSite();
-        String usernameFieldId = target.getAttributes().getLoginUsernameFieldId();
-        String passwordFieldId = target.getAttributes().getPwFieldId();
-        String loginUser = target.getAttributes().getLoginUser();
-        String password = target.getAttributes().getLoginPw();
-        String loggedInIndicator = target.getAttributes().getLoggedInIndicator();
-        String loggedOutIndicator = target.getAttributes().getLoggedOutIndicator();
-        String csrfToken = target.getAttributes().getCsrfTokenId();
+
 
         if (authentication) {
-            return zapService.configureAuthentication(
-                    contextId, loginSite,
-                    usernameFieldId, passwordFieldId,
-                    loginUser, password,
-                    "", loggedInIndicator,
-                    loggedOutIndicator, csrfToken);
+            return zapService.configureAuthentication(contextId, target);
         } else {
             return "-1";
         }

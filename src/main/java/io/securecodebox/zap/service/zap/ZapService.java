@@ -33,8 +33,10 @@ import io.securecodebox.zap.configuration.ZapConfiguration;
 import io.securecodebox.zap.service.engine.model.Finding;
 import io.securecodebox.zap.service.engine.model.Reference;
 import io.securecodebox.zap.service.engine.model.Target;
+import io.securecodebox.zap.service.engine.model.zap.ZapAuthenticationMethod;
 import io.securecodebox.zap.service.engine.model.zap.ZapReplacerRule;
 import io.securecodebox.zap.service.engine.model.zap.ZapSitemapEntry;
+
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -42,13 +44,13 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
-import javax.validation.constraints.NotNull;
 
 import io.securecodebox.zap.service.engine.model.zap.ZapTargetAttributes;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.togglz.core.util.Strings;
 import org.zaproxy.clientapi.core.Alert;
 import org.zaproxy.clientapi.core.ApiResponse;
 import org.zaproxy.clientapi.core.ApiResponseElement;
@@ -151,28 +153,85 @@ public class ZapService implements StatusDetailIndicator {
     /**
      * Configure the authentication based on the given user name and password field.
      *
-     * @param tokenId If non-empty the authentication is script-based instead of form-based
      * @return New user ID
      */
-    public String configureAuthentication(String contextId, String loginUrl, String usernameFieldId, String passwordFieldId,
-                                          String username, String password, String loginQueryExtension, String loggedInIndicator,
-                                          String loggedOutIndicator, String tokenId) throws ClientApiException, UnsupportedEncodingException {
+    public String configureAuthentication(String contextId, Target target) throws ClientApiException, UnsupportedEncodingException {
+        ZapTargetAttributes attributes = target.getAttributes();
+
+        String loginUrl = attributes.getLoginSite();
+        String usernameFieldId = attributes.getLoginUsernameFieldId();
+        String passwordFieldId = attributes.getPwFieldId();
+        String username = attributes.getLoginUser();
+        String password = attributes.getLoginPw();
+        String loggedInIndicator = attributes.getLoggedInIndicator();
+        String loggedOutIndicator = attributes.getLoggedOutIndicator();
+        String csrfToken = attributes.getCsrfTokenId();
+
         log.info("Configuring ZAP based authentication for user '{}' and loginUrl '{}'", username, loginUrl);
 
-        if (tokenId == null || tokenId.isEmpty()) {
-            api.authentication.setAuthenticationMethod(contextId, AUTH_FORM_BASED, "loginUrl=" +
-                    URLEncoder.encode(loginUrl, "UTF-8") + "&loginRequestData=" +
-                    URLEncoder.encode(usernameFieldId + "={%username%}&" + passwordFieldId + "={%password%}" +
-                            loginQueryExtension, "UTF-8"));
-        } else {
-            api.authentication.setAuthenticationMethod(contextId, AUTH_SCRIPT_BASED,
-                    "scriptName=csrfAuthScript" + "&LoginURL=" + loginUrl + "&CSRFField=" +
-                            tokenId + "&POSTData=" + URLEncoder.encode(usernameFieldId + "={%username%}&" +
-                            passwordFieldId + "={%password%}&" + tokenId + "={%user_token%}", "UTF-8") + loginQueryExtension);
-            api.acsrf.addOptionToken(tokenId);
-            api.script.load("csrfAuthScript", "authentication", "Oracle Nashorn",
-                    "csrfAuthScript.js", "csrfloginscript");
-            // TODO First check if api.script.listScripts() contains "csrfAuthScript" ?
+        ZapAuthenticationMethod authenticationMethod = attributes.getAuthenticationMethod();
+
+        switch (authenticationMethod) {
+            case FormBased:
+                String formArgs = "loginUrl=" + URLEncoder.encode(loginUrl, "UTF-8")
+                        + "&loginRequestData="
+                        + URLEncoder.encode(usernameFieldId + "={%username%}&" + passwordFieldId + "={%password%}", "UTF-8");
+                api.authentication.setAuthenticationMethod(
+                        contextId,
+                        AUTH_FORM_BASED,
+                        formArgs
+                );
+                break;
+            case CsrfLoginScript:
+                api.acsrf.addOptionToken(csrfToken);
+                api.script.load("csrfAuthScript", "authentication", "Oracle Nashorn",
+                        "csrfAuthScript.js", "csrfloginscript");
+
+                String csrfArgs = "scriptName=csrfAuthScript"
+                        + "&LoginURL=" + loginUrl
+                        + "&CSRFField=" + csrfToken
+                        + "&POSTData=" + URLEncoder.encode(usernameFieldId + "={%username%}&" + passwordFieldId + "={%password%}&" + csrfToken + "={%user_token%}", "UTF-8");
+                api.authentication.setAuthenticationMethod(
+                        contextId,
+                        AUTH_SCRIPT_BASED,
+                        csrfArgs
+                );
+                break;
+            case ScriptBased:
+                log.info("Loading custom authentication script '{}'", attributes.getAuthenticationScriptPath());
+
+                try {
+                    api.script.remove("scb-custom-authentication");
+                    log.info("Deleted existing authentication script");
+                } catch (ClientApiException err) {
+                    // Probably a NotFound error.
+                    log.info("Tried to delete existing script but didn't exist.");
+                }
+
+                api.script.load(
+                        "scb-custom-authentication",
+                        "authentication",
+                        "Oracle Nashorn",
+                        attributes.getAuthenticationScriptPath(),
+                        "Custom authentication script for secureCodeBox orchestrated ZAP scan"
+                );
+                log.info("Script loaded successfully.");
+
+                String scriptArgs = "scriptName=scb-custom-authentication";
+
+                if(Strings.isNotEmpty(attributes.getAuthenticationScriptParameters())) {
+                    scriptArgs += "&" + attributes.getAuthenticationScriptParameters();
+                }
+
+                log.info("Setting script as authentication method for context with args: '{}'", scriptArgs);
+
+                api.authentication.setAuthenticationMethod(
+                        contextId,
+                        AUTH_SCRIPT_BASED,
+                        scriptArgs
+                );
+                log.info("Script set as authentication method");
+                break;
         }
 
         if (loggedInIndicator != null && !loggedInIndicator.isEmpty()) {
@@ -249,8 +308,8 @@ public class ZapService implements StatusDetailIndicator {
     }
 
     /**
-     * @param userId         User ID to start the scan as, "-1" to ignore
-     * @param attributes     ZapScan Attributes
+     * @param userId     User ID to start the scan as, "-1" to ignore
+     * @param attributes ZapScan Attributes
      * @return New scanner scan ID
      */
     public String startScannerAsUser(String targetUrl, String contextId, String userId, ZapTargetAttributes attributes) throws ClientApiException {
