@@ -265,10 +265,34 @@ public class ZapService implements StatusDetailIndicator {
     public void configureSessionManagement(String contextId, Target target) throws ClientApiException {
         switch (target.getAttributes().getSessionManagementMethod()){
             case CookieBased:
+                log.info("Setting SessionManagement to CookieBased");
                 api.sessionManagement.setSessionManagementMethod(contextId, "cookieBasedSessionManagement", null);
                 break;
             case ScriptBased:
-                // TODO(@J12934) Implement
+                log.info("Setting SessionManagement to ScriptBased");
+
+                loadScript(
+                        "scb-custom-session-management",
+                        ScriptTypes.SessionManagment,
+                        ScriptEngines.OracleNashorn,
+                        target.getAttributes().getSessionManagementScriptPath(),
+                        "Custom session management script for secureCodeBox orchestrated ZAP scan"
+                );
+
+                String scriptArgs = "scriptName=scb-custom-session-management";
+
+                if(Strings.isNotEmpty(target.getAttributes().getSessionManagementScriptParameters())) {
+                    scriptArgs += "&" + target.getAttributes().getSessionManagementScriptParameters();
+                }
+
+                log.info("Setting script as session management method for context with args: '{}'", scriptArgs);
+
+                api.sessionManagement.setSessionManagementMethod(
+                        contextId,
+                        "scriptBasedSessionManagement",
+                        scriptArgs
+                );
+                log.info("Script set as session management method");
                 break;
         }
     }
