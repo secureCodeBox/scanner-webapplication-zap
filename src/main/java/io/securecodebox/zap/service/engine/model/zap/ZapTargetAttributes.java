@@ -96,6 +96,27 @@ public class ZapTargetAttributes {
     @JsonProperty("ZAP_AUTHENTICATION_SCRIPT_PARAMETERS")
     private String authenticationScriptParameters;
 
+    @JsonProperty("ZAP_SESSION_MANAGEMENT_METHOD")
+    private ZapSessionManagement sessionManagementMethod = ZapSessionManagement.CookieBased;
+
+    // Only used when SessionManagementMethod is "script-based"
+    /**
+     * Path to the Script
+     * Currently only js (Oracle Nashorn) Type Scripts are supported
+     *
+     * Example: "/home/securecodebox/sessionmanagment-search-service.js"
+     */
+    @JsonProperty("ZAP_SESSION_MANAGEMENT_SCRIPT_PATH")
+    private String sessionManagementScriptPath;
+    /**
+     * Parameters to use when activating the script.
+     * Formatted like a url query string
+     *
+     * Example: "url=http://foobar.com&something=else"
+     */
+    @JsonProperty("ZAP_SESSION_MANAGEMENT_SCRIPT_PARAMETERS")
+    private String sessionManagementScriptParameters;
+
     @JsonProperty("ZAP_SPIDER_CONFIGURATION_TYPE")
     private String spiderConfigurationType;
     @JsonProperty("ZAP_SCANNER_CONFIGURATION_TYPE")
