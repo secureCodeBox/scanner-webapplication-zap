@@ -137,7 +137,7 @@ public class EngineWorkerJobTest {
         createScannerTask();
         spiderTask.getTargets().get(0).getAttributes().setAuthentication(true);
         engineWorkerJob.execute();
-        verify(zapService, times(1)).configureAuthentication(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(zapService, times(1)).configureAuthentication(any(), any());
     }
 
     @Test
