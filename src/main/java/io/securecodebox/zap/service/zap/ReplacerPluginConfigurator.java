@@ -1,7 +1,7 @@
 package io.securecodebox.zap.service.zap;
 
 import io.securecodebox.zap.service.engine.model.zap.ZapReplacerRule;
-import javax.validation.constraints.NotNull;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.zaproxy.clientapi.core.ApiResponseList;
 import org.zaproxy.clientapi.core.ApiResponseSet;
@@ -85,7 +85,7 @@ public class ReplacerPluginConfigurator {
      * @param rule
      * @throws ClientApiException thrown if rule cannot be set
      */
-    private void addReplacerRule(@NotNull ZapReplacerRule rule) throws ClientApiException {
+    private void addReplacerRule(@NonNull ZapReplacerRule rule) throws ClientApiException {
         api.replacer.addRule(
                 rule.getDescription(),
                 rule.getEnabled(),
@@ -102,7 +102,7 @@ public class ReplacerPluginConfigurator {
      * @param rules The list of ZAP replacer rules to remove.
      * @throws ClientApiException thrown if at least one of the rules cannot be removed
      */
-    private void removeReplacerRules(@NotNull ZapReplacerRule[] rules) throws ClientApiException {
+    private void removeReplacerRules(@NonNull ZapReplacerRule[] rules) throws ClientApiException {
         if (rules != null && rules.length > 0) {
             log.debug("Removing #{} exiting replacer rules", rules.length);
             for (ZapReplacerRule rule : rules){
@@ -119,7 +119,7 @@ public class ReplacerPluginConfigurator {
      * @param rule The ZAP replacer rule to remove.
      * @throws ClientApiException thrown if rule cannot be removed
      */
-    private void removeReplacerRule(@NotNull ZapReplacerRule rule) throws ClientApiException {
+    private void removeReplacerRule(@NonNull ZapReplacerRule rule) throws ClientApiException {
         if (rule != null) {
             api.replacer.removeRule(rule.getDescription());
         } else {
