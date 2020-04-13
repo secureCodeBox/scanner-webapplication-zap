@@ -124,7 +124,7 @@ public class EngineWorkerJob implements JobRunnable {
     /**
      * Perform spider tasks and post the result back to the engine
      *
-     * @param task      the task to be executed
+     * @param task the task to be executed
      * @throws ClientApiException
      * @throws UnsupportedEncodingException
      */
@@ -162,7 +162,7 @@ public class EngineWorkerJob implements JobRunnable {
     /**
      * Perform scanner tasks and post the result back to the engine
      *
-     * @param task      the task to be executed
+     * @param task the task to be executed
      * @throws ClientApiException
      * @throws UnsupportedEncodingException
      */
@@ -175,8 +175,9 @@ public class EngineWorkerJob implements JobRunnable {
             log.info("Starting Scanner Task against target: '{}'", target.getLocation());
 
             String contextId = configureScannerContext(target.getAttributes().getBaseUrl(), target);
-            
+
             String userId = configureAuthentication(target, contextId);
+            configureSessionManagement(target, contextId);
             List<Finding> result = executeScanner(target, contextId, userId);
 
             addBaseUrlToFindings(result, target.getAttributes().getBaseUrl());
@@ -198,10 +199,11 @@ public class EngineWorkerJob implements JobRunnable {
 
     /**
      * Adds a ZAP_BASE_URL attribute to each finding.
+     *
      * @param findings
      * @param baseUrl
      */
-    private void addBaseUrlToFindings(List<Finding> findings, String baseUrl){
+    private void addBaseUrlToFindings(List<Finding> findings, String baseUrl) {
         findings.forEach(f -> f.getAttributes().put("ZAP_BASE_URL", baseUrl));
     }
 
@@ -255,6 +257,10 @@ public class EngineWorkerJob implements JobRunnable {
         } else {
             return "-1";
         }
+    }
+
+    private void configureSessionManagement(Target target, String contextId) throws ClientApiException {
+        zapService.configureSessionManagement(contextId, target);
     }
 
     private void completeTask(ZapTask task, List<Finding> findings, List<String> rawFindings, ZapTopic zapTopic) throws ClientApiException {

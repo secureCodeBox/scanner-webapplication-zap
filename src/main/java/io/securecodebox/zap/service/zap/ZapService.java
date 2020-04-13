@@ -135,7 +135,6 @@ public class ZapService implements StatusDetailIndicator {
             context.excludeFromContext(CONTEXT_NAME, regex);
         }
 
-        api.sessionManagement.setSessionManagementMethod(contextId, "cookieBasedSessionManagement", null);
         api.httpSessions.createEmptySession(targetUrl, SESSION_NAME);
         api.httpSessions.setActiveSession(targetUrl, SESSION_NAME);
 
@@ -248,6 +247,17 @@ public class ZapService implements StatusDetailIndicator {
         api.forcedUser.setForcedUserModeEnabled(true);
 
         return userId;
+    }
+
+    public void configureSessionManagement(String contextId, Target target) throws ClientApiException {
+        switch (target.getAttributes().getSessionManagementMethod()){
+            case CookieBased:
+                api.sessionManagement.setSessionManagementMethod(contextId, "cookieBasedSessionManagement", null);
+                break;
+            case ScriptBased:
+                // TODO(@J12934) Implement
+                break;
+        }
     }
 
     /**
