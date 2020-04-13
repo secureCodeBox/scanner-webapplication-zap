@@ -46,6 +46,8 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 
 import io.securecodebox.zap.service.engine.model.zap.ZapTargetAttributes;
+import io.securecodebox.zap.service.zap.model.ScriptEngines;
+import io.securecodebox.zap.service.zap.model.ScriptTypes;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -149,6 +151,26 @@ public class ZapService implements StatusDetailIndicator {
         api.core.newSession(SESSION_NAME, "true");
     }
 
+    private void loadScript(String name, ScriptTypes type, ScriptEngines engine, String fileName, String description) throws ClientApiException {
+        log.info("Loading authentication script '{}'", fileName);
+        try {
+            api.script.remove(name);
+            log.info("Deleted existing authentication script {}", name);
+        } catch (ClientApiException err) {
+            // Probably a NotFound error.
+            log.info("Tried to delete existing script '{}' but didn't exist.", name);
+        }
+
+        api.script.load(
+                name,
+                type.toString(),
+                engine.toString(),
+                fileName,
+                description
+        );
+        log.info("Script {} loaded successfully.", name);
+    }
+
     /**
      * Configure the authentication based on the given user name and password field.
      *
@@ -197,24 +219,15 @@ public class ZapService implements StatusDetailIndicator {
                 );
                 break;
             case ScriptBased:
-                log.info("Loading custom authentication script '{}'", attributes.getAuthenticationScriptPath());
+                log.info("Loading custom authentication script");
 
-                try {
-                    api.script.remove("scb-custom-authentication");
-                    log.info("Deleted existing authentication script");
-                } catch (ClientApiException err) {
-                    // Probably a NotFound error.
-                    log.info("Tried to delete existing script but didn't exist.");
-                }
-
-                api.script.load(
+                loadScript(
                         "scb-custom-authentication",
-                        "authentication",
-                        "Oracle Nashorn",
+                        ScriptTypes.Authentication,
+                        ScriptEngines.OracleNashorn,
                         attributes.getAuthenticationScriptPath(),
                         "Custom authentication script for secureCodeBox orchestrated ZAP scan"
                 );
-                log.info("Script loaded successfully.");
 
                 String scriptArgs = "scriptName=scb-custom-authentication";
 
