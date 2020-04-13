@@ -22,6 +22,8 @@ COPY --from=builder /home/gradle/build/libs/scanner-webapplication-zap-0.4.0-SNA
 
 USER root
 
+RUN wget -O /zap/plugin/openapi-beta-16.zap https://github.com/secureCodeBox/zap-extensions/releases/download/openapi-v16-test-1/openapi-beta-16.zap
+
 RUN wget -O /home/zap/wait-for-it.sh https://raw.githubusercontent.com/vishnubob/wait-for-it/54d1f0bfeb6557adf8a3204455389d0901652242/wait-for-it.sh
 
 RUN chmod +x /home/zap/init.sh && \
